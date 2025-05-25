@@ -1,7 +1,7 @@
 {
-  "name": "drone-mcp-server-template",
+  "name": "widescreen-research",
   "version": "1.0.0",
-  "description": "Cloud Run optimized MCP drone server template",
+  "description": "Widescreen Research - An MCP server for comprehensive research capabilities powered by Exa AI",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -12,11 +12,11 @@
     "dev": "NODE_ENV=development nodemon index.js | pino-pretty",
     "lint": "eslint",
     "fix": "eslint --fix",
-    "build-image": "gcloud builds submit --pack image=us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/drone-mcp:$DRONE_TYPE",
-    "deploy": "gcloud run deploy drone-mcp-$DRONE_TYPE --image us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/drone-mcp:$DRONE_TYPE --region us-central1",
+    "build-image": "gcloud builds submit --pack image=us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/widescreen-research:$DRONE_TYPE",
+    "deploy": "gcloud run deploy widescreen-research-$DRONE_TYPE --image us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/widescreen-research:$DRONE_TYPE --region us-central1",
     "test": "mocha test/app.test.js --check-leaks"
   },
-  "author": "Your Organization",
+  "author": "Widescreen Research Team",
   "license": "Apache-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",

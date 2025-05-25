@@ -46,7 +46,7 @@ app.get('/metrics', async (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
   const droneInfo = {
-    message: 'Cloud Run MCP Drone Server',
+    message: 'Widescreen Research MCP Server',
     type: process.env.DRONE_TYPE || 'generic',
     transport: process.env.MCP_TRANSPORT || 'stdio',
     capabilities: getCapabilities()

@@ -1,253 +1,291 @@
-# Spawn MCP - Coordinator-Worker MCP Server Architecture
+# Widescreen Research - Comprehensive Research MCP Server
 
-A Go implementation of a coordinator-worker Model Context Protocol (MCP) server architecture that enables dynamic drone spawning and distributed task execution.
+A powerful Model Context Protocol (MCP) server that provides comprehensive research capabilities powered by Exa AI. Designed for researchers, analysts, and AI assistants who need access to real-time web search, academic papers, company intelligence, and specialized research tools.
 
 ## 🚀 Features
 
-- **MCP Protocol Integration**: Full Model Context Protocol support using [mark3labs/mcp-go](https://github.com/mark3labs/mcp-go)
-- **Dynamic Drone Management**: Spawn, list, and terminate drone servers
-- **Distributed Task Execution**: Execute tasks across a fleet of drone workers
-- **Multiple Drone Types**: Support for researcher, analyst, writer, and coder drones
-- **Real-time Status Monitoring**: Track drone status and system metrics
-- **Cloud-Ready Architecture**: Designed for Google Cloud Platform deployment
+- **Real-time Web Search**: Powered by Exa AI's advanced search capabilities with content extraction
+- **Academic Research**: Search and access academic papers and research content
+- **Company Intelligence**: Comprehensive company research and competitor analysis
+- **Multi-platform Search**: LinkedIn, Wikipedia, GitHub, and general web search
+- **Content Extraction**: Direct URL crawling and content analysis
+- **Cloud-Ready**: Optimized for Google Cloud Run deployment with auto-scaling
+- **MCP Protocol**: Full Model Context Protocol compliance for seamless AI integration
 
-## 🛠️ Architecture
+## 🛠️ Research Capabilities
+
+### Core Research Tools
+
+- **`web_search`**: Real-time web search with intelligent content extraction
+- **`research_papers`**: Academic paper and research content discovery
+- **`company_research`**: Comprehensive company information gathering
+- **`crawl_url`**: Extract and analyze content from specific URLs
+- **`find_competitors`**: Identify and analyze business competitors
+- **`linkedin_search`**: Professional network and company research
+- **`wikipedia_search`**: Authoritative encyclopedia content
+- **`github_search`**: Open source project and developer research
+
+### Research Specializations
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   MCP Client    │    │   Coordinator   │    │   Drone Fleet   │
-│  (Claude, etc.) │◄──►│   MCP Server    │◄──►│  (Cloud Run)    │
+│   Academic      │    │   Business      │    │   Technical     │
+│   Research      │    │   Intelligence  │    │   Research      │
+├─────────────────┤    ├─────────────────┤    ├─────────────────┤
+│ • Papers        │    │ • Companies     │    │ • GitHub        │
+│ • Citations     │    │ • Competitors   │    │ • Documentation │
+│ • Authors       │    │ • Market Data   │    │ • Code Examples │
+│ • Institutions  │    │ • LinkedIn      │    │ • Tech Trends   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-The system consists of:
-- **MCP Client**: Any MCP-compatible client (Claude Desktop, VS Code, etc.)
-- **Coordinator**: Central MCP server that manages drone lifecycle and task distribution
-- **Drone Fleet**: Lightweight worker servers that execute specific tasks
-
 ## 📋 Prerequisites
 
-- Go 1.21 or later
-- Git
+- Node.js 16 or later
+- Exa AI API key ([Get one here](https://exa.ai))
+- Google Cloud Platform account (for deployment)
 
-## 🔧 Installation
+## 🔧 Installation & Setup
+
+### Local Development
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/spawn-mcp/coordinator.git
-cd coordinator
+git clone https://github.com/your-org/widescreen-research.git
+cd widescreen-research
 ```
 
 2. **Install dependencies**:
 ```bash
-go mod tidy
+npm install
 ```
 
-3. **Build the MCP server**:
+3. **Set up environment variables**:
 ```bash
-go build -o spawn-mcp-server cmd/simple-mcp/main.go
+export EXA_API_KEY="your-exa-api-key"
+export DRONE_TYPE="research"
+```
+
+4. **Run the server**:
+```bash
+npm start
+```
+
+### Cloud Deployment
+
+Deploy to Google Cloud Run for production use:
+
+```bash
+# Build and deploy
+export GOOGLE_CLOUD_PROJECT="your-project-id"
+export DRONE_TYPE="research"
+
+npm run build-image
+npm run deploy
 ```
 
 ## 🎯 Usage
 
-### Running the MCP Server
-
-The server communicates via stdio (standard input/output) as per MCP specification:
-
-```bash
-./spawn-mcp-server
-```
-
-### Available MCP Tools
-
-The server exposes the following tools:
-
-#### 1. `spawn_drone_server`
-Spawn a new drone server with specified capabilities.
-
-**Parameters:**
-- `drone_type` (required): Type of drone (`researcher`, `analyst`, `writer`, `coder`)
-- `region` (optional): GCP region (default: `us-central1`)
-
-#### 2. `list_active_drones`
-List all currently active drone servers.
-
-**Parameters:** None
-
-#### 3. `execute_distributed_task`
-Execute a task across the drone fleet.
-
-**Parameters:**
-- `task_type` (required): Type of task (`research`, `analysis`, `synthesis`, `coding`)
-- `description` (required): Detailed task description
-- `max_drones` (optional): Maximum drones to use (1-10, default: 3)
-
-#### 4. `get_system_status`
-Get overall system status and metrics.
-
-**Parameters:** None
-
-### Integration with MCP Clients
+### MCP Client Integration
 
 #### Claude Desktop
 
-1. Add to your `claude_desktop_config.json`:
+Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "spawn-mcp": {
-      "command": "/path/to/spawn-mcp-server"
+    "widescreen-research": {
+      "command": "node",
+      "args": ["/path/to/widescreen-research/index.js"],
+      "env": {
+        "EXA_API_KEY": "your-exa-api-key",
+        "DRONE_TYPE": "research"
+      }
     }
   }
 }
 ```
 
-2. Restart Claude Desktop
-
-3. Use the tools in your conversations:
-```
-Can you spawn a researcher drone and then execute a research task about AI safety?
-```
-
-#### MCP Inspector (for testing)
+#### Direct MCP Usage
 
 ```bash
-npx @modelcontextprotocol/inspector ./spawn-mcp-server
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector node index.js
+```
+
+### Research Examples
+
+#### Academic Research
+```javascript
+// Search for AI safety papers
+{
+  "method": "tools/call",
+  "params": {
+    "name": "research_papers",
+    "arguments": {
+      "query": "AI safety alignment research",
+      "numResults": 10,
+      "maxCharacters": 5000
+    }
+  }
+}
+```
+
+#### Company Intelligence
+```javascript
+// Research a company and its competitors
+{
+  "method": "tools/call", 
+  "params": {
+    "name": "company_research",
+    "arguments": {
+      "query": "OpenAI company information funding",
+      "numResults": 5
+    }
+  }
+}
+```
+
+#### Technical Research
+```javascript
+// Find GitHub repositories
+{
+  "method": "tools/call",
+  "params": {
+    "name": "github_search", 
+    "arguments": {
+      "query": "machine learning frameworks",
+      "numResults": 8
+    }
+  }
+}
 ```
 
 ## 🧪 Testing
 
-### Manual Testing with JSON-RPC
-
-Test the server directly with JSON-RPC messages:
-
+### Health Check
 ```bash
-# List available tools
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | ./spawn-mcp-server
-
-# Spawn a drone
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "spawn_drone_server", "arguments": {"drone_type": "researcher"}}}' | ./spawn-mcp-server
-
-# List active drones
-echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "list_active_drones", "arguments": {}}}' | ./spawn-mcp-server
+curl http://localhost:8080/health
 ```
 
-### Example Workflow
-
-1. **Check system status**:
+### Research Status
 ```bash
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_system_status", "arguments": {}}}' | ./spawn-mcp-server
+curl http://localhost:8080/
 ```
 
-2. **Spawn some drones**:
+### Tool Testing
 ```bash
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "spawn_drone_server", "arguments": {"drone_type": "researcher"}}}' | ./spawn-mcp-server
-echo '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "spawn_drone_server", "arguments": {"drone_type": "analyst"}}}' | ./spawn-mcp-server
+# Test web search
+echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "web_search", "arguments": {"query": "latest AI research", "numResults": 3}}}' | node index.js
+
+# Test company research  
+echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "company_research", "arguments": {"query": "Tesla", "numResults": 5}}}' | node index.js
 ```
 
-3. **Execute a distributed task**:
-```bash
-echo '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "execute_distributed_task", "arguments": {"task_type": "research", "description": "Research the latest developments in AI safety", "max_drones": 2}}}' | ./spawn-mcp-server
-```
+## 🏗️ Architecture
 
-## 🏗️ Development
-
-### Project Structure
+### Research Server Components
 
 ```
-├── cmd/
-│   ├── simple-mcp/          # Simple MCP server implementation
-│   ├── coordinator/         # Full coordinator with GCP integration
-│   └── drone/              # Drone worker implementation
-├── pkg/
-│   ├── coordinator/        # Coordinator server logic
-│   ├── drone/             # Drone worker logic
-│   ├── gcp/               # Google Cloud Platform integration
-│   ├── mcp/               # MCP protocol wrapper
-│   └── types/             # Shared type definitions
-└── README.md
+├── index.js                 # Main server entry point
+├── app.js                   # Express app with health endpoints
+├── mcp-server.js            # MCP protocol implementation
+├── drones/
+│   ├── research.js          # Research tools (Exa AI integration)
+│   ├── scraper.js           # Web scraping capabilities
+│   ├── processor.js         # Data processing tools
+│   └── generic.js           # Basic utilities
+└── utils/
+    ├── logging.js           # Structured logging
+    └── metadata.js          # GCP metadata utilities
 ```
 
-### Building Different Components
+### Exa AI Integration
 
-```bash
-# Simple MCP server (recommended for testing)
-go build -o spawn-mcp-server cmd/simple-mcp/main.go
+The server integrates directly with Exa AI's powerful search API:
 
-# Full coordinator (requires GCP setup)
-go build -o coordinator cmd/coordinator/main.go
+- **Real-time Search**: Live web crawling and content extraction
+- **Semantic Understanding**: AI-powered result ranking and relevance
+- **Content Processing**: Automatic summarization and key information extraction
+- **Multi-modal Results**: Text, links, and metadata in structured format
 
-# Drone worker
-go build -o drone cmd/drone/main.go
-```
+## 🌟 Key Features
 
-### Adding New Tools
+✅ **Exa AI Powered**: Advanced search capabilities with real-time web crawling  
+✅ **MCP Compliant**: Full Model Context Protocol support for AI integration  
+✅ **Cloud Optimized**: Designed for Google Cloud Run with auto-scaling  
+✅ **Research Focused**: 8 specialized research tools for different use cases  
+✅ **Production Ready**: Comprehensive logging, health checks, and error handling  
+✅ **Lightweight**: ~2MB container images with fast cold starts  
 
-1. Define the tool in `addDroneTools()`:
-```go
-newTool := mcp.NewTool("tool_name",
-    mcp.WithDescription("Tool description"),
-    mcp.WithString("param_name",
-        mcp.Required(),
-        mcp.Description("Parameter description"),
-    ),
-)
-s.AddTool(newTool, handleNewTool)
-```
+## 🔧 Configuration
 
-2. Implement the handler:
-```go
-func handleNewTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-    param, err := request.RequireString("param_name")
-    if err != nil {
-        return mcp.NewToolResultError(fmt.Sprintf("Invalid param: %v", err)), nil
-    }
-    
-    // Tool logic here
-    
-    return mcp.NewToolResultText("Success!"), nil
-}
-```
+### Environment Variables
 
-## 🌟 Key Achievements
+- `EXA_API_KEY`: Your Exa AI API key (required)
+- `DRONE_TYPE`: Server type, set to "research" for full capabilities
+- `PORT`: Server port (default: 8080)
+- `NODE_ENV`: Environment (development/production)
+- `LOG_LEVEL`: Logging level (info/debug/error)
 
-✅ **Dependency Issues Fixed**: Resolved all Go module dependency conflicts  
-✅ **MCP Integration**: Successfully integrated mark3labs/mcp-go library  
-✅ **Working MCP Server**: Built and tested functional MCP server  
-✅ **Tool Implementation**: Implemented 4 core drone management tools  
-✅ **JSON-RPC Compliance**: Full Model Context Protocol compliance  
-✅ **Performance Optimized**: Go implementation provides 2-4x performance vs TypeScript  
-✅ **Small Binaries**: ~2.3MB executables vs 50MB+ Node.js applications  
+### Research Tool Configuration
 
-## 🚧 Future Enhancements
+Each research tool can be configured with parameters:
 
-- **GCP Integration**: Complete Cloud Run API integration for real drone deployment
-- **Authentication**: Add proper GCP authentication and authorization
-- **Persistence**: Add database persistence for drone state and task history
-- **Monitoring**: Implement comprehensive logging and metrics
-- **Security**: Add input validation and rate limiting
-- **WebSocket Support**: Real-time drone communication
-- **Load Balancing**: Intelligent task distribution algorithms
+- `numResults`: Number of search results (1-50)
+- `maxCharacters`: Content extraction limit (500-10000)
+- `excludeDomain`: Domains to exclude from results
+- `category`: Content category filtering
 
-## 📚 References
+## 🚧 Roadmap
 
-- [Model Context Protocol Specification](https://modelcontextprotocol.io/)
-- [mark3labs/mcp-go Documentation](https://github.com/mark3labs/mcp-go)
-- [Claude Desktop MCP Integration](https://docs.anthropic.com/claude/docs/mcp)
-- [Google Cloud Run Documentation](https://cloud.google.com/run/docs)
+- **Enhanced Analytics**: Research trend analysis and insights
+- **Citation Management**: Academic citation formatting and tracking
+- **Multi-language Support**: Research in multiple languages
+- **Custom Filters**: Advanced search filtering and categorization
+- **Research Workflows**: Automated research pipelines
+- **Data Export**: Research results in various formats (PDF, CSV, JSON)
+
+## 📚 API Reference
+
+### Research Tools
+
+#### `web_search(query, numResults?)`
+Real-time web search with content extraction.
+
+#### `research_papers(query, maxCharacters?, numResults?)`
+Search academic papers and research content.
+
+#### `company_research(query, numResults?)`
+Comprehensive company information gathering.
+
+#### `crawl_url(url)`
+Extract content from specific URLs.
+
+#### `find_competitors(query, excludeDomain?, numResults?)`
+Identify business competitors.
+
+#### `linkedin_search(query, numResults?)`
+Search LinkedIn for professional content.
+
+#### `wikipedia_search(query, numResults?)`
+Search Wikipedia articles.
+
+#### `github_search(query, numResults?)`
+Search GitHub repositories and code.
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests
+3. Add research capabilities or improvements
+4. Test with various research scenarios
 5. Submit a pull request
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+Apache 2.0 License - see LICENSE file for details.
 
 ---
 
-**Built with ❤️ using Go and the Model Context Protocol** # widescreen-research
+**Powered by Exa AI • Built for Comprehensive Research • MCP Protocol Compliant**

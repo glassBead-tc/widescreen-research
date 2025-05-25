@@ -1,4 +1,4 @@
-// Cloud Run optimized MCP Drone Server
+// Widescreen Research MCP Server
 import { createServer } from 'http';
 import app from './app.js';
 import { initMcpServer } from './mcp-server.js';
@@ -30,7 +30,7 @@ const main = async () => {
     const MCP_TRANSPORT = process.env.MCP_TRANSPORT || 'stdio'; // 'stdio' or 'http'
 
     logger.info({
-      message: 'Starting drone MCP server',
+      message: 'Starting Widescreen Research MCP server',
       droneType: DRONE_TYPE,
       transport: MCP_TRANSPORT,
       coordinatorUrl: COORDINATOR_URL
