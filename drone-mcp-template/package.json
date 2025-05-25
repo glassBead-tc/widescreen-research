@@ -1,0 +1,39 @@
+{
+  "name": "drone-mcp-server-template",
+  "version": "1.0.0",
+  "description": "Cloud Run optimized MCP drone server template",
+  "main": "index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "NODE_ENV=development nodemon index.js | pino-pretty",
+    "lint": "eslint",
+    "fix": "eslint --fix",
+    "build-image": "gcloud builds submit --pack image=us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/drone-mcp:$DRONE_TYPE",
+    "deploy": "gcloud run deploy drone-mcp-$DRONE_TYPE --image us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/drone-images/drone-mcp:$DRONE_TYPE --region us-central1",
+    "test": "mocha test/app.test.js --check-leaks"
+  },
+  "author": "Your Organization",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^5.0.0",
+    "gcp-metadata": "^6.0.0",
+    "google-auth-library": "^9.0.0",
+    "pino": "^9.0.0",
+    "pino-http": "^10.0.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-google": "^0.14.0",
+    "mocha": "^11.0.0",
+    "nodemon": "^3.0.0",
+    "supertest": "^7.0.0"
+  }
+} 
