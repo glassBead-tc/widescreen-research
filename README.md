@@ -1,5 +1,7 @@
 # Widescreen Research - Comprehensive Research MCP Server
 
+> Note: This repository contains both a Go-based coordinator/drone implementation (primary) and a Node sample under `widescreen-research-mcp/` for Exa-powered tools. The canonical control plane and workers are Go. The README sections below about Node remain as examples; see `cmd/coordinator`, `cmd/drone`, and `pkg/mcp` for the current Go control plane.
+
 A powerful Model Context Protocol (MCP) server that provides comprehensive research capabilities powered by Exa AI. Designed for researchers, analysts, and AI assistants who need access to real-time web search, academic papers, company intelligence, and specialized research tools.
 
 ## 🚀 Features

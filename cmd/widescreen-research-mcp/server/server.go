@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mark3labs/mcp-go"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/operations"
 	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/orchestrator"
 	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"

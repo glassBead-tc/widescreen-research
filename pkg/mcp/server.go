@@ -105,6 +105,42 @@ func (s *MCPServer) registerTools() {
 	)
 
 	s.mcpServer.AddTool(terminateDroneTool, s.handleTerminateDrone)
+
+	// New tools for campaign orchestration
+	planCampaign := mcp.NewTool("plan_campaign",
+		mcp.WithDescription("Validate a campaign spec and produce an execution plan"),
+		mcp.WithString("spec_json",
+			mcp.Required(),
+			mcp.Description("JSON-encoded CampaignSpec"),
+		),
+	)
+	s.mcpServer.AddTool(planCampaign, s.handlePlanCampaign)
+
+	launchFleet := mcp.NewTool("launch_fleet",
+		mcp.WithDescription("Provision worker fleet and seed queue for a campaign run"),
+		mcp.WithString("run_id", mcp.Required()),
+		mcp.WithNumber("target_workers", mcp.DefaultNumber(10), mcp.Min(1), mcp.Max(100)),
+	)
+	s.mcpServer.AddTool(launchFleet, s.handleLaunchFleet)
+
+	fleetStatus := mcp.NewTool("fleet_status",
+		mcp.WithDescription("Get current status and progress for a campaign run"),
+		mcp.WithString("run_id", mcp.Required()),
+	)
+	s.mcpServer.AddTool(fleetStatus, s.handleFleetStatus)
+
+	abort := mcp.NewTool("abort",
+		mcp.WithDescription("Abort a campaign run and scale down workers"),
+		mcp.WithString("run_id", mcp.Required()),
+	)
+	s.mcpServer.AddTool(abort, s.handleAbort)
+
+	exportGraph := mcp.NewTool("export_graph",
+		mcp.WithDescription("Export collected graph for a mem0 space or run"),
+		mcp.WithString("mem0_space", mcp.Required()),
+		mcp.WithString("format", mcp.DefaultString("jsonl"), mcp.Enum("jsonl", "csv")),
+	)
+	s.mcpServer.AddTool(exportGraph, s.handleExportGraph)
 }
 
 // handleSpawnDrone handles the spawn_drone_server tool call

@@ -1,0 +1,12 @@
+{
+  "dataset_uri": "gs://your-bucket/yc_founders_2020_2024.jsonl",
+  "depth_profile": "S2",
+  "parallelism": 25,
+  "per_task_time_budget_s": 180,
+  "sources": ["exa", "wikipedia", "github"],
+  "mem0_space": "yc-ai-founders-v1",
+  "quality_bar": {
+    "min_sources_per_fact": 2,
+    "must_cite": true
+  }
+}

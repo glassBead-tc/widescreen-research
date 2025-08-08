@@ -27,10 +27,10 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start server in a goroutine
+	// Start HTTP server in a goroutine
 	serverErr := make(chan error, 1)
 	go func() {
-		serverErr <- researcherDrone.Serve()
+		serverErr <- researcherDrone.StartHTTPServer(":8080")
 	}()
 
 	// Wait for shutdown signal or server error
