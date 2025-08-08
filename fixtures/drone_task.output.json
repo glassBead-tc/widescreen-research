@@ -1,0 +1,20 @@
+{
+  "subject": "Jane Doe (YC S20) - Co-founder of ExampleAI",
+  "summary": "Jane Doe co-founded ExampleAI (YC S20). Previously at MegaCorp, studied CS at MIT.",
+  "citations": [
+    "https://news.ycombinator.com/item?id=123",
+    "https://example.com/profile/jane-doe"
+  ],
+  "entities": [
+    {"id": "person:jane_doe", "type": "Person", "name": "Jane Doe"},
+    {"id": "company:exampleai", "type": "Company", "name": "ExampleAI"},
+    {"id": "batch:yc_s20", "type": "YC_Batch", "name": "YC S20"}
+  ],
+  "triples": [
+    {"subject_id": "person:jane_doe", "predicate": "co_founded", "object_id": "company:exampleai", "citations": ["https://example.com/profile/jane-doe"], "confidence": 0.95},
+    {"subject_id": "person:jane_doe", "predicate": "batch_member", "object_id": "batch:yc_s20", "citations": ["https://news.ycombinator.com/item?id=123"], "confidence": 0.9}
+  ],
+  "duration_s": 7,
+  "drone_id": "drone-researcher-abc",
+  "timestamp": "2025-01-02T03:04:05Z"
+}

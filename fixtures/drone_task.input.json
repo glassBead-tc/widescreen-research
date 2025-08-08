@@ -1,0 +1,8 @@
+{
+  "subject": "Jane Doe (YC S20) - Co-founder of ExampleAI",
+  "policy": {"max_hops": 1},
+  "budget_sec": 60,
+  "sources": ["exa", "wikipedia"],
+  "run_id": "test-run",
+  "meta": {"idempotency_key": "123e4567"}
+}

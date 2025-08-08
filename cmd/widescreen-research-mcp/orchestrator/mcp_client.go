@@ -7,19 +7,19 @@ import (
 	"log"
 	"sync"
 
-	"github.com/mark3labs/mcp-go"
+	"github.com/mark3labs/mcp-go/client"
 )
 
 // MCPClient manages connections to other MCP servers
 type MCPClient struct {
-	clients map[string]*mcp.Client
+	clients map[string]*client.Client
 	mu      sync.RWMutex
 }
 
 // NewMCPClient creates a new MCP client manager
 func NewMCPClient() *MCPClient {
 	return &MCPClient{
-		clients: make(map[string]*mcp.Client),
+		clients: make(map[string]*client.Client),
 	}
 }
 
@@ -46,31 +46,31 @@ func (c *MCPClient) Initialize(ctx context.Context) error {
 }
 
 // connectToServer connects to a single MCP server
-func (c *MCPClient) connectToServer(ctx context.Context, config ServerConfig) (*mcp.Client, error) {
+func (c *MCPClient) connectToServer(ctx context.Context, config ServerConfig) (*client.Client, error) {
 	// Create client with appropriate transport
-	client := mcp.NewClient(
+	cl := client.NewClient(
 		config.Name,
 		config.Version,
-		mcp.WithTransport(config.Transport),
+		client.WithTransport(config.Transport),
 	)
 
 	// Connect to the server
-	if err := client.Connect(ctx, config.URL); err != nil {
+	if err := cl.Connect(ctx, config.URL); err != nil {
 		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
 	// Initialize the client
-	if err := client.Initialize(ctx); err != nil {
+	if err := cl.Initialize(ctx); err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
 
-	return client, nil
+	return cl, nil
 }
 
 // CallTool calls a tool on a specific MCP server
 func (c *MCPClient) CallTool(ctx context.Context, serverName string, toolName string, arguments interface{}) (interface{}, error) {
 	c.mu.RLock()
-	client, exists := c.clients[serverName]
+	cl, exists := c.clients[serverName]
 	c.mu.RUnlock()
 
 	if !exists {
@@ -78,7 +78,7 @@ func (c *MCPClient) CallTool(ctx context.Context, serverName string, toolName st
 	}
 
 	// Call the tool
-	result, err := client.CallTool(ctx, toolName, arguments)
+	result, err := cl.CallTool(ctx, toolName, arguments)
 	if err != nil {
 		return nil, fmt.Errorf("tool call failed: %w", err)
 	}
@@ -89,7 +89,7 @@ func (c *MCPClient) CallTool(ctx context.Context, serverName string, toolName st
 // GetResource gets a resource from a specific MCP server
 func (c *MCPClient) GetResource(ctx context.Context, serverName string, uri string) (interface{}, error) {
 	c.mu.RLock()
-	client, exists := c.clients[serverName]
+	cl, exists := c.clients[serverName]
 	c.mu.RUnlock()
 
 	if !exists {
@@ -97,7 +97,7 @@ func (c *MCPClient) GetResource(ctx context.Context, serverName string, uri stri
 	}
 
 	// Get the resource
-	result, err := client.GetResource(ctx, uri)
+	result, err := cl.GetResource(ctx, uri)
 	if err != nil {
 		return nil, fmt.Errorf("resource fetch failed: %w", err)
 	}
@@ -112,8 +112,8 @@ func (c *MCPClient) ListTools(ctx context.Context) map[string][]ToolInfo {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	for serverName, client := range c.clients {
-		serverTools, err := client.ListTools(ctx)
+	for serverName, cl := range c.clients {
+		serverTools, err := cl.ListTools(ctx)
 		if err != nil {
 			log.Printf("Failed to list tools from %s: %v", serverName, err)
 			continue
@@ -176,13 +176,13 @@ func (c *MCPClient) Shutdown() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for name, client := range c.clients {
-		if err := client.Close(); err != nil {
+	for name, cl := range c.clients {
+		if err := cl.Close(); err != nil {
 			log.Printf("Error closing MCP client %s: %v", name, err)
 		}
 	}
 
-	c.clients = make(map[string]*mcp.Client)
+	c.clients = make(map[string]*client.Client)
 }
 
 // ServerConfig represents MCP server configuration
