@@ -2,10 +2,8 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
@@ -33,20 +31,24 @@ func (a *ClaudeAgent) Initialize(ctx context.Context) error {
 	return nil
 }
 
-// GenerateResearchInstructions generates research instructions for drones
-func (a *ClaudeAgent) GenerateResearchInstructions(ctx context.Context, config *schemas.ResearchConfig) (ResearchInstructions, error) {
-	// In a real implementation, this would use Claude to generate instructions
-	// For now, we'll create structured instructions based on the config
-	
-	instructions := ResearchInstructions{
-		Topic:       config.Topic,
-		Depth:       config.ResearchDepth,
-		Methodology: a.generateMethodology(config),
-		Tasks:       a.generateTasks(config),
-		Guidelines:  a.generateGuidelines(config),
+// GenerateSubQueries uses the AI to break a high-level topic into specific sub-queries.
+func (a *ClaudeAgent) GenerateSubQueries(ctx context.Context, topic string, numQueries int) ([]string, error) {
+	// In a real implementation, this would use Claude. For now, mock data.
+	log.Printf("Generating %d mock sub-queries for topic: %s", numQueries, topic)
+	if topic == "Top 3 AI Companies" {
+		return []string{
+			"Detailed analysis of OpenAI's business model, products, and recent controversies.",
+			"Financial performance and strategic initiatives of Google's AI division (DeepMind, Google AI).",
+			"Overview of Microsoft's AI strategy, focusing on its partnership with OpenAI and Azure AI services.",
+		}, nil
 	}
 
-	return instructions, nil
+	// Default mock data
+	var queries []string
+	for i := 1; i <= numQueries; i++ {
+		queries = append(queries, fmt.Sprintf("Sub-query %d for %s", i, topic))
+	}
+	return queries, nil
 }
 
 // GenerateReport generates a research report from collected data
@@ -70,81 +72,6 @@ func (a *ClaudeAgent) GenerateReport(ctx context.Context, config *schemas.Resear
 	}
 
 	return report, nil
-}
-
-// generateMethodology generates research methodology based on config
-func (a *ClaudeAgent) generateMethodology(config *schemas.ResearchConfig) string {
-	methodology := fmt.Sprintf("Research Methodology for '%s':\n", config.Topic)
-	
-	switch config.ResearchDepth {
-	case "basic":
-		methodology += "- Quick overview using web search and summary extraction\n"
-		methodology += "- Focus on recent and relevant information\n"
-		methodology += "- Basic fact verification\n"
-	case "deep":
-		methodology += "- Comprehensive investigation across multiple sources\n"
-		methodology += "- Cross-reference verification of all findings\n"
-		methodology += "- Deep analysis of patterns and relationships\n"
-		methodology += "- Expert source consultation\n"
-	default:
-		methodology += "- Standard research approach with balanced depth\n"
-		methodology += "- Multiple source verification\n"
-		methodology += "- Pattern identification and analysis\n"
-	}
-
-	return methodology
-}
-
-// generateTasks generates specific research tasks
-func (a *ClaudeAgent) generateTasks(config *schemas.ResearchConfig) []ResearchTask {
-	tasks := []ResearchTask{
-		{
-			ID:          "gather_overview",
-			Name:        "Gather Overview Information",
-			Description: fmt.Sprintf("Collect general information about %s", config.Topic),
-			Priority:    1,
-		},
-		{
-			ID:          "identify_sources",
-			Name:        "Identify Key Sources",
-			Description: "Find authoritative sources and references",
-			Priority:    2,
-		},
-		{
-			ID:          "analyze_patterns",
-			Name:        "Analyze Patterns",
-			Description: "Identify patterns and relationships in the data",
-			Priority:    3,
-		},
-	}
-
-	// Add depth-specific tasks
-	if config.ResearchDepth == "deep" {
-		tasks = append(tasks, ResearchTask{
-			ID:          "expert_analysis",
-			Name:        "Expert Analysis",
-			Description: "Perform deep expert-level analysis",
-			Priority:    4,
-		})
-	}
-
-	return tasks
-}
-
-// generateGuidelines generates research guidelines
-func (a *ClaudeAgent) generateGuidelines(config *schemas.ResearchConfig) []string {
-	guidelines := []string{
-		"Prioritize accuracy and reliability of sources",
-		"Cross-reference information from multiple sources",
-		"Document all sources and references",
-		"Focus on recent and relevant information",
-	}
-
-	if config.SpecificSources != "" {
-		guidelines = append(guidelines, fmt.Sprintf("Focus on these specific sources: %s", config.SpecificSources))
-	}
-
-	return guidelines
 }
 
 // generateExecutiveSummary generates an executive summary
@@ -310,21 +237,6 @@ func (a *ClaudeAgent) Shutdown() {
 }
 
 // Supporting types
-
-type ResearchInstructions struct {
-	Topic       string
-	Depth       string
-	Methodology string
-	Tasks       []ResearchTask
-	Guidelines  []string
-}
-
-type ResearchTask struct {
-	ID          string
-	Name        string
-	Description string
-	Priority    int
-}
 
 type DataAnalysis struct {
 	Patterns          []schemas.Pattern

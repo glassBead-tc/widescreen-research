@@ -1,43 +1,61 @@
 package drone
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/spawn-mcp/coordinator/pkg/types"
+	"cloud.google.com/go/pubsub"
+	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
 )
 
 // ResearcherDrone represents a research-focused drone MCP server
 type ResearcherDrone struct {
 	droneID        string
-	droneType      types.DroneType
 	coordinatorURL string
 	taskID         string
+	pubsubClient   *pubsub.Client
+	pubsubTopic    *pubsub.Topic
 }
 
 // NewResearcherDrone creates a new researcher drone MCP server
 func NewResearcherDrone() (*ResearcherDrone, error) {
+	ctx := context.Background()
 	// Get configuration from environment
 	droneID := os.Getenv("DRONE_ID")
 	if droneID == "" {
 		return nil, fmt.Errorf("DRONE_ID environment variable is required")
 	}
 
-	droneType := os.Getenv("DRONE_TYPE")
-	if droneType == "" {
-		droneType = "researcher"
-	}
-
 	coordinatorURL := os.Getenv("COORDINATOR_URL")
 	taskID := os.Getenv("TASK_ID")
 
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID == "" {
+		return nil, fmt.Errorf("GOOGLE_CLOUD_PROJECT environment variable is required")
+	}
+
+	topicID := os.Getenv("PUBSUB_TOPIC")
+	if topicID == "" {
+		return nil, fmt.Errorf("PUBSUB_TOPIC environment variable is required")
+	}
+
+	pubsubClient, err := pubsub.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pubsub client: %w", err)
+	}
+
+	topic := pubsubClient.Topic(topicID)
+
 	drone := &ResearcherDrone{
 		droneID:        droneID,
-		droneType:      types.DroneType(droneType),
 		coordinatorURL: coordinatorURL,
 		taskID:         taskID,
+		pubsubClient:   pubsubClient,
+		pubsubTopic:    topic,
 	}
 
 	return drone, nil
@@ -133,5 +151,37 @@ func (d *ResearcherDrone) Serve() error {
 
 // Close closes the drone and cleans up resources
 func (d *ResearcherDrone) Close() error {
+	if d.pubsubClient != nil {
+		d.pubsubClient.Close()
+	}
+	return nil
+}
+
+// publishResult publishes the research result to the Pub/Sub topic.
+func (d *ResearcherDrone) publishResult(ctx context.Context, resultData map[string]interface{}) error {
+	// We need to wrap the raw result data in the DroneResult schema
+	// to be consistent with what the orchestrator expects.
+	result := schemas.DroneResult{
+		DroneID:        d.droneID,
+		Status:         "success", // Assuming success if this method is called
+		Data:           resultData,
+		CompletedAt:    time.Now(),
+		ProcessingTime: 0, // This can be properly calculated in the http worker
+	}
+
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	msg := &pubsub.Message{
+		Data: jsonData,
+	}
+
+	if _, err := d.pubsubTopic.Publish(ctx, msg).Get(ctx); err != nil {
+		return fmt.Errorf("failed to publish result: %w", err)
+	}
+
+	log.Printf("Drone %s published result to topic %s", d.droneID, d.pubsubTopic.String())
 	return nil
 }

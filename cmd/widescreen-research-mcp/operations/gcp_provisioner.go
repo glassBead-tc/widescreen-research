@@ -134,8 +134,8 @@ func (gp *GCPProvisioner) provisionCloudRun(ctx context.Context, request *schema
 			envs := make([]*runpb.EnvVar, 0, len(envVars))
 			for k, v := range envVars {
 				envs = append(envs, &runpb.EnvVar{
-					Name:  k,
-					Value: &runpb.EnvVar_Value{Value: fmt.Sprintf("%v", v)},
+					Name:   k,
+					Values: &runpb.EnvVar_Value{Value: fmt.Sprintf("%v", v)},
 				})
 			}
 			service.Template.Containers[0].Env = envs
