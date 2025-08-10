@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
-	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/pubsub"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
 )
@@ -137,34 +137,12 @@ func (o *Orchestrator) checkDroneHealth(ctx context.Context, drone *DroneInfo) e
 	return nil
 }
 
-// assignDroneWork assigns work to a specific drone
-func (o *Orchestrator) assignDroneWork(instructions ResearchInstructions, workflow map[string]interface{}, droneIndex int, totalDrones int) ResearchInstructions {
-	// Distribute tasks across drones
-	droneInstructions := instructions
-	
-	// Assign subset of tasks based on drone index
-	tasksPerDrone := len(instructions.Tasks) / totalDrones
-	startIdx := droneIndex * tasksPerDrone
-	endIdx := startIdx + tasksPerDrone
-	
-	if droneIndex == totalDrones-1 {
-		// Last drone gets any remaining tasks
-		endIdx = len(instructions.Tasks)
-	}
-	
-	if startIdx < len(instructions.Tasks) {
-		droneInstructions.Tasks = instructions.Tasks[startIdx:endIdx]
-	}
-
-	return droneInstructions
-}
-
 // sendInstructionsToDrone sends research instructions to a drone
-func (o *Orchestrator) sendInstructionsToDrone(ctx context.Context, drone *DroneInfo, instructions ResearchInstructions) error {
+func (o *Orchestrator) sendInstructionsToDrone(ctx context.Context, drone *DroneInfo, task map[string]interface{}) error {
 	// Create command message
 	command := map[string]interface{}{
 		"type":         "research_command",
-		"instructions": instructions,
+		"instructions": task,
 		"timestamp":    time.Now(),
 	}
 
@@ -212,10 +190,18 @@ func (o *Orchestrator) collectResults(ctx context.Context, session *ResearchSess
 		case result := <-session.Queue.ResultChannel():
 			o.mu.Lock()
 			session.Results = append(session.Results, result)
+			if drone, ok := session.Drones[result.DroneID]; ok {
+				drone.Status = result.Status
+			}
 			o.mu.Unlock()
-			
-			log.Printf("Collected result from drone %s", result.DroneID)
-			
+
+			log.Printf("Collected result from drone %s with status %s", result.DroneID, result.Status)
+
+			// Update progress file
+			if err := o.updateProgressFile(session); err != nil {
+				log.Printf("Warning: failed to update progress file for session %s: %v", session.Config.SessionID, err)
+			}
+
 		case err := <-session.Queue.ErrorChannel():
 			log.Printf("Queue error: %v", err)
 		}
@@ -330,6 +316,75 @@ func (o *Orchestrator) storeReport(ctx context.Context, report *schemas.Research
 	return err
 }
 
+// updateProgressFile writes the current session progress to a markdown file.
+func (o *Orchestrator) updateProgressFile(session *ResearchSession) error {
+	// Ensure the reports directory exists.
+	if err := os.MkdirAll("reports", 0755); err != nil {
+		return fmt.Errorf("failed to create reports directory: %w", err)
+	}
+
+	filePath := fmt.Sprintf("reports/progress_%s.md", session.Config.SessionID)
+
+	var content strings.Builder
+	content.WriteString(fmt.Sprintf("# Research Progress: %s\n\n", session.Config.Topic))
+	content.WriteString(fmt.Sprintf("**Session ID:** `%s`\n", session.Config.SessionID))
+	content.WriteString(fmt.Sprintf("**Overall Status:** `%s`\n", session.Status))
+	content.WriteString(fmt.Sprintf("**Last Updated:** %s\n\n", time.Now().Format(time.RFC1123)))
+
+	content.WriteString("## Drone Status\n\n")
+	content.WriteString("| Drone ID | Status |\n")
+	content.WriteString("|---|---|\n")
+
+	o.mu.RLock()
+	for id, drone := range session.Drones {
+		content.WriteString(fmt.Sprintf("| %s | %s |\n", id, drone.Status))
+	}
+	o.mu.RUnlock()
+
+	// Add results summary
+	content.WriteString(fmt.Sprintf("\n**Results Collected:** %d / %d\n", len(session.Results), len(session.Drones)))
+
+	return os.WriteFile(filePath, []byte(content.String()), 0644)
+}
+
+// renderReportToMarkdown creates the final user-facing markdown report.
+func (o *Orchestrator) renderReportToMarkdown(report *schemas.ResearchReport, resultFiles []string) (string, error) {
+	var content strings.Builder
+
+	content.WriteString(fmt.Sprintf("# %s\n\n", report.Title))
+	content.WriteString(fmt.Sprintf("**Session ID:** `%s`  \n", report.SessionID))
+	content.WriteString(fmt.Sprintf("**Generated On:** %s\n\n", report.CreatedAt.Format(time.RFC1123)))
+
+	content.WriteString("## Executive Summary\n\n")
+	content.WriteString(report.Executive + "\n\n")
+
+	content.WriteString("## Methodology\n\n")
+	content.WriteString(report.Methodology + "\n\n")
+
+	for _, section := range report.Sections {
+		content.WriteString(fmt.Sprintf("## %s\n\n", section.Title))
+		content.WriteString(section.Content + "\n\n")
+		if len(section.Insights) > 0 {
+			content.WriteString("### Key Insights\n\n")
+			for _, insight := range section.Insights {
+				content.WriteString(fmt.Sprintf("- %s\n", insight))
+			}
+			content.WriteString("\n")
+		}
+	}
+
+	content.WriteString("---\n\n")
+	content.WriteString("## Appendix: Raw Drone Results\n\n")
+	content.WriteString("This appendix contains links to the raw JSON output from each research drone.\n\n")
+
+	for _, path := range resultFiles {
+		content.WriteString(fmt.Sprintf("- [%s](./%s)\n", path, path))
+	}
+	content.WriteString("\n")
+
+	return content.String(), nil
+}
+
 // cleanupSession cleans up resources after a research session
 func (o *Orchestrator) cleanupSession(ctx context.Context, session *ResearchSession) {
 	log.Printf("Cleaning up session %s", session.Config.SessionID)
@@ -369,5 +424,6 @@ func (o *Orchestrator) deleteDroneService(ctx context.Context, droneID string) e
 	}
 
 	// Wait for deletion to complete
-	return operation.Wait(ctx)
+	_, err = operation.Wait(ctx)
+	return err
 }

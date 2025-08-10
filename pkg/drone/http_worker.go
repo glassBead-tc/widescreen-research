@@ -1,6 +1,7 @@
 package drone
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -51,7 +52,6 @@ func (d *ResearcherDrone) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid json", http.StatusBadRequest)
 			return
 		}
-		start := time.Now()
 
 		// For MVP: call ConductResearch with basic mapping
 		res, err := d.ConductResearch(req.Subject, "", req.Sources, 5)
@@ -60,29 +60,17 @@ func (d *ResearcherDrone) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Map mock results to response with placeholder graph
-		summary, _ := res["summary"].(string)
-		citations := []string{}
-		if arr, ok := res["findings"].([]map[string]interface{}); ok {
-			for _, f := range arr {
-				if src, ok := f["sources"].([]string); ok {
-					citations = append(citations, src...)
-				}
+		// Publish the result to Pub/Sub asynchronously
+		go func() {
+			ctx := context.Background()
+			if err := d.publishResult(ctx, res); err != nil {
+				log.Printf("ERROR: Failed to publish research result for subject '%s': %v", req.Subject, err)
 			}
-		}
+		}()
 
-		resp := researchResponse{
-			Subject:   req.Subject,
-			Summary:   summary,
-			Citations: citations,
-			Entities:  []types.Entity{},
-			Triples:   []types.Triple{},
-			DurationS: int(time.Since(start).Seconds()),
-			DroneID:   d.droneID,
-			Timestamp: time.Now(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(resp)
+		// Respond immediately with 202 Accepted
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte("Task accepted for processing."))
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

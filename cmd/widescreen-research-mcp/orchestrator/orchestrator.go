@@ -156,6 +156,11 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	o.activeSessions[config.SessionID] = session
 	o.mu.Unlock()
 
+	// Update progress file
+	if err := o.updateProgressFile(session); err != nil {
+		log.Printf("Warning: failed to update progress file for session %s: %v", session.Config.SessionID, err)
+	}
+
 	// Start monitoring the session
 	go o.monitorSession(ctx, session)
 
@@ -174,9 +179,10 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	}
 
 	// Wait for completion
-	result, err := o.waitForCompletion(ctx, session)
+	_, err := o.waitForCompletion(ctx, session)
 	if err != nil {
 		session.Status = "failed"
+		o.updateProgressFile(session)
 		return nil, fmt.Errorf("research failed: %w", err)
 	}
 
@@ -184,11 +190,14 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	log.Printf("Generating report for session %s", config.SessionID)
 	report, err := o.generateReport(ctx, session)
 	if err != nil {
+		session.Status = "failed_report_generation"
+		o.updateProgressFile(session)
 		return nil, fmt.Errorf("failed to generate report: %w", err)
 	}
 
 	session.Report = report
 	session.Status = "completed"
+	o.updateProgressFile(session)
 
 	// Store report
 	o.mu.Lock()
@@ -198,10 +207,12 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	// Clean up resources
 	go o.cleanupSession(ctx, session)
 
+	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
+
 	return &schemas.ResearchResult{
 		SessionID:   config.SessionID,
 		Status:      "completed",
-		ReportURL:   fmt.Sprintf("/reports/%s", report.ID),
+		ReportURL:   reportFilePath,
 		ReportData:  report,
 		Metrics:     o.calculateMetrics(session),
 		CompletedAt: time.Now(),
@@ -268,12 +279,11 @@ func (o *Orchestrator) deployDrone(ctx context.Context, droneID string, config *
 				{
 					Image: image,
 					Env: []*runpb.EnvVar{
-						{Name: "DRONE_ID", Value: &runpb.EnvVar_Value{Value: droneID}},
-						{Name: "SESSION_ID", Value: &runpb.EnvVar_Value{Value: config.SessionID}},
-						{Name: "RESEARCH_TOPIC", Value: &runpb.EnvVar_Value{Value: config.Topic}},
-						{Name: "RESEARCH_DEPTH", Value: &runpb.EnvVar_Value{Value: config.ResearchDepth}},
-						{Name: "ORCHESTRATOR_URL", Value: &runpb.EnvVar_Value{Value: getOrchestratorURL()}},
-						{Name: "PUBSUB_TOPIC", Value: &runpb.EnvVar_Value{Value: fmt.Sprintf("research-results-%s", config.SessionID)}},
+						{Name: "DRONE_ID", Values: &runpb.EnvVar_Value{Value: droneID}},
+						{Name: "SESSION_ID", Values: &runpb.EnvVar_Value{Value: config.SessionID}},
+						{Name: "GOOGLE_CLOUD_PROJECT", Values: &runpb.EnvVar_Value{Value: o.projectID}},
+						// The drone will get its instructions via HTTP, but it needs to know which topic to publish results to.
+						{Name: "PUBSUB_TOPIC", Values: &runpb.EnvVar_Value{Value: fmt.Sprintf("research-results-%s", config.SessionID)}},
 					},
 					Resources: &runpb.ResourceRequirements{
 						Limits: map[string]string{
@@ -309,21 +319,26 @@ func (o *Orchestrator) deployDrone(ctx context.Context, droneID string, config *
 
 // coordinateResearch coordinates the research process across drones
 func (o *Orchestrator) coordinateResearch(ctx context.Context, session *ResearchSession) error {
-	// Create research instructions using Claude agent
-	instructions, err := o.claudeAgent.GenerateResearchInstructions(ctx, session.Config)
+	// 1. Break down the high-level topic into specific sub-queries.
+	log.Printf("Breaking down research topic: %s", session.Config.Topic)
+	subQueries, err := o.claudeAgent.GenerateSubQueries(ctx, session.Config.Topic, session.Config.ResearcherCount)
 	if err != nil {
-		return fmt.Errorf("failed to generate research instructions: %w", err)
+		return fmt.Errorf("failed to generate sub-queries: %w", err)
 	}
+	log.Printf("Generated %d sub-queries for topic '%s'", len(subQueries), session.Config.Topic)
 
-	// Parse workflow templates if provided
-	var workflow map[string]interface{}
-	if session.Config.WorkflowTemplates != "" {
-		if err := json.Unmarshal([]byte(session.Config.WorkflowTemplates), &workflow); err != nil {
-			log.Printf("Failed to parse workflow templates: %v", err)
+	// TODO: For now, we assume the number of drones matches the number of sub-queries.
+	// A more robust implementation would use a queue to distribute subQueries to available drones.
+	if len(subQueries) != len(session.Drones) {
+		log.Printf("Warning: The number of sub-queries (%d) does not match the number of drones (%d). Adjusting drone count for this session.", len(subQueries), len(session.Drones))
+		// This would be a place to dynamically adjust drone count if the architecture supported it.
+		// For now, we'll just truncate the query list to match the drone count.
+		if len(subQueries) > len(session.Drones) {
+			subQueries = subQueries[:len(session.Drones)]
 		}
 	}
 
-	// Send instructions to all drones
+	// 2. Send a unique instruction to each drone.
 	o.mu.RLock()
 	drones := make([]*DroneInfo, 0, len(session.Drones))
 	for _, drone := range session.Drones {
@@ -331,15 +346,33 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 	}
 	o.mu.RUnlock()
 
-	// Distribute work across drones
 	for i, drone := range drones {
-		droneInstructions := o.assignDroneWork(instructions, workflow, i, len(drones))
-		if err := o.sendInstructionsToDrone(ctx, drone, droneInstructions); err != nil {
+		if i >= len(subQueries) {
+			break // Don't send instructions if we have more drones than tasks.
+		}
+
+		// The drone needs to know its task ID (which can be the drone ID for simplicity)
+		// and the query. The other info is passed via env vars.
+		task := map[string]interface{}{
+			"subject": subQueries[i],
+			"run_id": session.Config.SessionID,
+		}
+
+		if err := o.sendInstructionsToDrone(ctx, drone, task); err != nil {
 			log.Printf("Failed to send instructions to drone %s: %v", drone.ID, err)
+			drone.Status = "failed_to_instruct"
+		} else {
+			log.Printf("Successfully sent task '%s' to drone %s", subQueries[i], drone.ID)
+			drone.Status = "running"
 		}
 	}
 
-	// Start collecting results
+	// Update progress file after dispatching all tasks
+	if err := o.updateProgressFile(session); err != nil {
+		log.Printf("Warning: failed to update progress file for session %s: %v", session.Config.SessionID, err)
+	}
+
+	// 3. Start collecting results from Pub/Sub.
 	go o.collectResults(ctx, session)
 
 	return nil
@@ -383,13 +416,35 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 
 // generateReport generates the final research report
 func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSession) (*schemas.ResearchReport, error) {
-	// Analyze collected data
+	// 1. Save individual drone results
+	resultFileDir := fmt.Sprintf("reports/results_%s", session.Config.SessionID)
+	if err := os.MkdirAll(resultFileDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create results directory: %w", err)
+	}
+
+	var resultFilePaths []string
+	for _, result := range session.Results {
+		resultFilePath := fmt.Sprintf("%s/drone_%s.json", resultFileDir, result.DroneID)
+		jsonData, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			log.Printf("Warning: failed to marshal result for drone %s: %v", result.DroneID, err)
+			continue
+		}
+		if err := os.WriteFile(resultFilePath, jsonData, 0644); err != nil {
+			log.Printf("Warning: failed to save result for drone %s: %v", result.DroneID, err)
+			continue
+		}
+		resultFilePaths = append(resultFilePaths, resultFilePath)
+	}
+
+
+	// 2. Analyze collected data
 	analysis, err := o.analyzeResults(ctx, session.Results)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze results: %w", err)
 	}
 
-	// Generate report using Claude agent
+	// 3. Generate structured report using Claude agent
 	report, err := o.claudeAgent.GenerateReport(ctx, session.Config, session.Results, analysis)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate report: %w", err)
@@ -399,7 +454,19 @@ func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSess
 	report.SessionID = session.Config.SessionID
 	report.CreatedAt = time.Now()
 
-	// Store report in Firestore
+	// 4. Render the structured report to a user-facing Markdown file
+	markdownContent, err := o.renderReportToMarkdown(report, resultFilePaths)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render markdown report: %w", err)
+	}
+	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
+	if err := os.WriteFile(reportFilePath, []byte(markdownContent), 0644); err != nil {
+		return nil, fmt.Errorf("failed to save markdown report: %w", err)
+	}
+	log.Printf("Final report saved to %s", reportFilePath)
+
+
+	// 5. Store structured report in Firestore
 	if err := o.storeReport(ctx, report); err != nil {
 		log.Printf("Failed to store report: %v", err)
 	}

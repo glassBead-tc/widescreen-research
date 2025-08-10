@@ -359,7 +359,7 @@ func (da *DataAnalyzer) analyzeProcessingTimes(results []schemas.DroneResult) (a
 	}
 	
 	avg = total / time.Duration(len(times))
-	return
+	return avg, min, max
 }
 
 // Pattern identification methods

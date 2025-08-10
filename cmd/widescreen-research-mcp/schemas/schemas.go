@@ -69,6 +69,14 @@ type ResearchMetrics struct {
 	CostEstimate      float64       `json:"cost_estimate"`
 }
 
+// DroneTask represents the input for a single research drone
+type DroneTask struct {
+	TaskID            string                 `json:"task_id"`
+	Query             string                 `json:"query"`
+	ResultPostbackURL string                 `json:"result_postback_url"`
+	Parameters        map[string]interface{} `json:"parameters,omitempty"`
+}
+
 // DroneResult represents the result from a single research drone
 type DroneResult struct {
 	DroneID      string                 `json:"drone_id"`
