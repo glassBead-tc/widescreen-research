@@ -577,7 +577,7 @@ func (da *DataAnalyzer) identifyTimePattern(results []schemas.DroneResult) *sche
 }
 
 func (da *DataAnalyzer) identifyPerformancePattern(results []schemas.DroneResult) *schemas.Pattern {
-	avg, min, max := da.analyzeProcessingTimes(results)
+    avg, _, max := da.analyzeProcessingTimes(results)
 	
 	if max > avg*3 { // Some drones took much longer
 		return &schemas.Pattern{
