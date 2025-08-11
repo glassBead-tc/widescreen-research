@@ -1,17 +1,17 @@
 # Widescreen Research MCP Server (Go)
 
-This repository provides a Go-based Model Context Protocol (MCP) server for orchestrated, large-scale research. The canonical server is implemented in Go under `cmd/widescreen-research-mcp/` and exposes a single MCP tool that drives an elicitation-first workflow and several operations, including distributed research on Google Cloud, analysis, and EXA Websets integration.
+This repository provides a Go-based [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server for orchestrated, large-scale research. The canonical server is implemented in Go under [`cmd/widescreen-research-mcp/`](cmd/widescreen-research-mcp/) and exposes a single MCP tool that drives an elicitation-first workflow and several operations, including distributed research on Google Cloud, analysis, and Exa Websets integration.
 
-Note: A standalone EXA Websets MCP server is vendored under `exa-mcp-server-websets/` and is launched as a subprocess by the orchestrator when you use Websets operations.
+Note: A standalone [Exa Websets MCP server](https://github.com/waldzellai/exa-websets-mcp-server) is vendored under [`exa-mcp-server-websets/`](exa-mcp-server-websets/) and is launched as a subprocess by the orchestrator when you use Websets operations.
 
 ## 🚀 Capabilities
 
 - Elicitation-driven session setup (topic, researcher_count, depth, output format, timeouts, priority)
-- Distributed research orchestration on Google Cloud (Cloud Run + Pub/Sub + Firestore)
+- Distributed research orchestration on Google Cloud ([Cloud Run](https://cloud.google.com/run) + [Pub/Sub](https://cloud.google.com/pubsub) + [Firestore](https://cloud.google.com/firestore))
 - Data analysis and report generation (Markdown report plus structured report object)
 - Sequential-thinking analysis using a Claude agent (mocked if `CLAUDE_API_KEY` is not set)
 - GCP provisioning helpers for Cloud Run, Pub/Sub, and Firestore
-- EXA Websets pipeline orchestration and direct Websets tool passthrough
+- Exa Websets pipeline orchestration and direct Websets tool passthrough
 
 ### MCP Surface
 
@@ -22,7 +22,7 @@ Note: A standalone EXA Websets MCP server is vendored under `exa-mcp-server-webs
   - `parameters_json` string (JSON-encoded map)
   - `elicitation_answers_json` string (JSON-encoded map)
 
-The server currently exposes tools only (no `resources`/`prompts`) due to the `mcp-go` server API in use.
+The server currently exposes tools only (no `resources`/`prompts`) due to the [mcp-go](https://github.com/mark3labs/mcp-go) server API in use.
 
 ### Operations
 
@@ -33,8 +33,8 @@ The server currently exposes tools only (no `resources`/`prompts`) due to the `m
   - pubsub: create topics and optional subscriptions
   - firestore: create collections
 - analyze-findings: Analyze drone results to extract insights, patterns, statistics, and visualizations
-- websets-orchestrate: Full EXA Websets pipeline (create → wait → list items → publish to Pub/Sub)
-- websets-call: Direct passthrough to EXA’s `websets_manager` tool with custom arguments
+- websets-orchestrate: Full Exa Websets pipeline (create → wait → list items → publish to Pub/Sub)
+- websets-call: Direct passthrough to Exa’s `websets_manager` tool with custom arguments
 
 Implementation references:
 
@@ -55,9 +55,9 @@ func (s *WidescreenResearchServer) registerOperations() { ... }
 
 ## 📋 Prerequisites
 
-- Go 1.23+
-- Google Cloud project and credentials (Cloud Run, Pub/Sub, Firestore)
-- For Websets operations: EXA API key and either the EXA Websets MCP binary or Node.js 18+ for fallback
+- [Go 1.23+](https://go.dev/)
+- Google Cloud project and credentials ([Cloud Run](https://cloud.google.com/run), [Pub/Sub](https://cloud.google.com/pubsub), [Firestore](https://cloud.google.com/firestore))
+- For Websets operations: [Exa](https://exa.ai) API key and either the Exa Websets MCP binary or [Node.js 18+](https://nodejs.org/) for fallback
 - Optional: `CLAUDE_API_KEY` for richer sequential thinking and report generation
 
 ## 🔧 Setup
@@ -76,9 +76,9 @@ go mod download
 go build -o widescreen-research ./cmd/widescreen-research-mcp
 ```
 
-3) Install/prepare EXA Websets MCP (only if you plan to use Websets)
+3) Install/prepare Exa Websets MCP (only if you plan to use Websets)
 
-- Recommended: install the published binary globally:
+- Recommended: install the published binary globally (via [`exa-websets-mcp-server`](https://www.npmjs.com/package/exa-websets-mcp-server)):
 
 ```bash
 npm i -g exa-websets-mcp-server
@@ -96,12 +96,12 @@ cd -
 
 - `GOOGLE_CLOUD_PROJECT` (required): your GCP project ID
 - `GOOGLE_CLOUD_REGION` (optional, default `us-central1`)
-- `EXA_API_KEY` (required for Websets operations)
+- `EXA_API_KEY` (required for Websets operations; get an [Exa](https://exa.ai) API key)
 - `CLAUDE_API_KEY` (optional)
 
 ## ▶️ Run
 
-Run the compiled binary. MCP clients (e.g., Claude Desktop) communicate over stdio.
+Run the compiled binary. MCP clients (e.g., [Claude Desktop](https://docs.anthropic.com/claude/docs/model-context-protocol)) communicate over stdio.
 
 ```bash
 ./widescreen-research
@@ -127,7 +127,7 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-### Inspect with MCP Inspector
+### Inspect with MCP Inspector ([npm](https://www.npmjs.com/package/@modelcontextprotocol/inspector))
 
 ```bash
 npx @modelcontextprotocol/inspector /absolute/path/to/widescreen-research
@@ -197,7 +197,7 @@ Result contains `report_url` (e.g., `reports/report_<session>.md`) and structure
 }
 ```
 
-### Websets pipeline (EXA)
+### Websets pipeline (Exa)
 
 ```json
 {
@@ -219,37 +219,37 @@ Result contains `report_url` (e.g., `reports/report_<session>.md`) and structure
     "parameters_json": "{\"operation\":\"create_webset\",\"webset\":{\"searchQuery\":\"AI safety\"}}"
   }
 }
-``;
+```
 
 ## 📦 Outputs
 
 - ElicitationResponse: `type` (elicitation|ready), questions, `session_id`, and derived `config`
 - ResearchResult: `status`, `report_url`, `report_data` (structured), and `metrics`
 
-Key schema types are defined in `cmd/widescreen-research-mcp/schemas/schemas.go`.
+Key schema types are defined in [`cmd/widescreen-research-mcp/schemas/schemas.go`](cmd/widescreen-research-mcp/schemas/schemas.go).
 
 ## 🏗️ Architecture
 
 ```
 Claude (client) ⇄ widescreen-research (Go MCP server) ⇄ Orchestrator
                                               ├─ GCP: Cloud Run, Pub/Sub, Firestore
-                                              └─ Subprocess MCP: EXA Websets server
+                                              └─ Subprocess MCP: Exa Websets server
 ```
 
 ## 📚 Repository Map (relevant)
 
-- `cmd/widescreen-research-mcp/`
-  - `server/` MCP tool and operation registration, elicitation manager
-  - `orchestrator/` GCP provisioning, research coordination, EXA Websets client
-  - `operations/` `gcp_provisioner.go`, `data_analyzer.go`, `sequential_thinking.go`
-  - `schemas/` Request/response/report types
-- `exa-mcp-server-websets/` Vendored EXA Websets MCP server (Node/TypeScript)
-- `pkg/mcp/` Alternate MCP surface for coordinator (drone fleet mgmt; separate from this server)
+- [`cmd/widescreen-research-mcp/`](cmd/widescreen-research-mcp/)
+  - [`server/`](cmd/widescreen-research-mcp/server/) MCP tool and operation registration, elicitation manager
+  - [`orchestrator/`](cmd/widescreen-research-mcp/orchestrator/) GCP provisioning, research coordination, Exa Websets client
+  - [`operations/`](cmd/widescreen-research-mcp/operations/) `gcp_provisioner.go`, `data_analyzer.go`, `sequential_thinking.go`
+  - [`schemas/`](cmd/widescreen-research-mcp/schemas/) Request/response/report types
+- [`exa-mcp-server-websets/`](exa-mcp-server-websets/) Vendored Exa Websets MCP server (Node/TypeScript)
+- [`pkg/mcp/`](pkg/mcp/) Alternate MCP surface for coordinator (drone fleet mgmt; separate from this server)
 
 ## ⚠️ Notes & Limitations
 
-- Only tools are exposed (no MCP `resources` or `prompts`) with the current `mcp-go` server API in use.
-- Websets operations require `EXA_API_KEY` and the EXA Websets server to be available on PATH (or Node fallback built locally).
+- Only tools are exposed (no MCP `resources` or `prompts`) with the current [mcp-go](https://github.com/mark3labs/mcp-go) server API in use.
+- Websets operations require `EXA_API_KEY` and the Exa Websets server to be available on PATH (or Node fallback built locally) — see [`exa-websets-mcp-server` on npm](https://www.npmjs.com/package/exa-websets-mcp-server).
 
 ## 📄 License
 
