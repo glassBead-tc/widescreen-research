@@ -1,21 +1,21 @@
 package server
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "log"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
 
-    mcp "github.com/mark3labs/mcp-go/mcp"
-    mcpserver "github.com/mark3labs/mcp-go/server"
-    "github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/operations"
-    "github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/orchestrator"
-    "github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	mcp "github.com/mark3labs/mcp-go/mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/operations"
+	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/orchestrator"
+	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
 )
 
 // WidescreenResearchServer is the main MCP server that provides widescreen research capabilities
 type WidescreenResearchServer struct {
-    mcpServer    *mcpserver.MCPServer
+	mcpServer    *mcpserver.MCPServer
 	orchestrator *orchestrator.Orchestrator
 	operations   *operations.OperationRegistry
 	elicitation  *ElicitationManager
@@ -23,13 +23,13 @@ type WidescreenResearchServer struct {
 
 // NewWidescreenResearchServer creates a new instance of the widescreen research server
 func NewWidescreenResearchServer() (*WidescreenResearchServer, error) {
-    // Create MCP server
-    mcpSrv := mcpserver.NewMCPServer(
-        "widescreen-research",
-        "1.0.0",
-        mcpserver.WithToolCapabilities(true),
-        mcpserver.WithRecovery(),
-    )
+	// Create MCP server
+	mcpSrv := mcpserver.NewMCPServer(
+		"widescreen-research",
+		"1.0.0",
+		mcpserver.WithToolCapabilities(true),
+		mcpserver.WithRecovery(),
+	)
 
 	// Create orchestrator
 	orch, err := orchestrator.NewOrchestrator()
@@ -43,8 +43,8 @@ func NewWidescreenResearchServer() (*WidescreenResearchServer, error) {
 	// Create elicitation manager
 	elicitManager := NewElicitationManager()
 
-    srv := &WidescreenResearchServer{
-        mcpServer:    mcpSrv,
+	srv := &WidescreenResearchServer{
+		mcpServer:    mcpSrv,
 		orchestrator: orch,
 		operations:   opRegistry,
 		elicitation:  elicitManager,
@@ -56,61 +56,61 @@ func NewWidescreenResearchServer() (*WidescreenResearchServer, error) {
 	// Register operations
 	srv.registerOperations()
 
-    // Resource and prompt registration are not supported with the current mcp-go server API used in this project.
+	// Resource and prompt registration are not supported with the current mcp-go server API used in this project.
 
 	return srv, nil
 }
 
 // registerWidescreenResearchTool registers the main tool that handles all operations
 func (s *WidescreenResearchServer) registerWidescreenResearchTool() {
-    tool := mcp.NewTool(
-        "widescreen_research",
-        mcp.WithDescription("Perform comprehensive widescreen research using distributed research drones"),
-        mcp.WithString("operation", mcp.Description("Operation to execute")),
-        mcp.WithString("session_id", mcp.Description("Session ID for elicitation and orchestration")),
-        mcp.WithString("parameters_json", mcp.Description("JSON-encoded parameters for the operation")),
-        mcp.WithString("elicitation_answers_json", mcp.Description("JSON-encoded elicitation answers")),
-    )
+	tool := mcp.NewTool(
+		"widescreen_research",
+		mcp.WithDescription("Perform comprehensive widescreen research using distributed research drones"),
+		mcp.WithString("operation", mcp.Description("Operation to execute")),
+		mcp.WithString("session_id", mcp.Description("Session ID for elicitation and orchestration")),
+		mcp.WithString("parameters_json", mcp.Description("JSON-encoded parameters for the operation")),
+		mcp.WithString("elicitation_answers_json", mcp.Description("JSON-encoded elicitation answers")),
+	)
 
-    s.mcpServer.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-        // Build input from tool request
-        op := req.GetString("operation", "")
-        sessionID := req.GetString("session_id", "")
+	s.mcpServer.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		// Build input from tool request
+		op := req.GetString("operation", "")
+		sessionID := req.GetString("session_id", "")
 
-        params := map[string]interface{}{}
-        if pstr := req.GetString("parameters_json", ""); pstr != "" {
-            _ = json.Unmarshal([]byte(pstr), &params)
-        }
+		params := map[string]interface{}{}
+		if pstr := req.GetString("parameters_json", ""); pstr != "" {
+			_ = json.Unmarshal([]byte(pstr), &params)
+		}
 
-        elicit := map[string]interface{}{}
-        if estr := req.GetString("elicitation_answers_json", ""); estr != "" {
-            _ = json.Unmarshal([]byte(estr), &elicit)
-        }
+		elicit := map[string]interface{}{}
+		if estr := req.GetString("elicitation_answers_json", ""); estr != "" {
+			_ = json.Unmarshal([]byte(estr), &elicit)
+		}
 
-        input := &schemas.WidescreenResearchInput{
-            Operation:          op,
-            SessionID:          sessionID,
-            ElicitationAnswers: elicit,
-            Parameters:         params,
-        }
+		input := &schemas.WidescreenResearchInput{
+			Operation:          op,
+			SessionID:          sessionID,
+			ElicitationAnswers: elicit,
+			Parameters:         params,
+		}
 
-        var result interface{}
-        var err error
+		var result interface{}
+		var err error
 
-        if input.Operation == "" || input.Operation == "start" {
-            result, err = s.handleElicitation(ctx, input)
-        } else {
-            result, err = s.executeOperation(ctx, input)
-        }
+		if input.Operation == "" || input.Operation == "start" {
+			result, err = s.handleElicitation(ctx, input)
+		} else {
+			result, err = s.executeOperation(ctx, input)
+		}
 
-        if err != nil {
-            return mcp.NewToolResultError(err.Error()), nil
-        }
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 
-        // Return JSON-encoded result as text
-        b, _ := json.Marshal(result)
-        return mcp.NewToolResultText(string(b)), nil
-    })
+		// Return JSON-encoded result as text
+		b, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(b)), nil
+	})
 }
 
 // handleElicitation manages the elicitation process
@@ -167,7 +167,7 @@ func (s *WidescreenResearchServer) executeOperation(ctx context.Context, input *
 	case "analyze-findings":
 		return s.handleAnalyzeFindings(ctx, input)
 	default:
-        return operation.Handler(ctx, input.Parameters)
+		return operation.Handler(ctx, input.Parameters)
 	}
 }
 
@@ -209,37 +209,37 @@ func (s *WidescreenResearchServer) handleAnalyzeFindings(ctx context.Context, in
 // registerOperations registers all available operations
 func (s *WidescreenResearchServer) registerOperations() {
 	// Register core operations
-    s.operations.Register("orchestrate-research", &operations.Operation{
-        Name:        "orchestrate-research",
-        Description: "Orchestrate distributed research using multiple drones",
-        Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-            return s.handleOrchestrateResearch(ctx, &schemas.WidescreenResearchInput{Parameters: params})
-        },
-    })
+	s.operations.Register("orchestrate-research", &operations.Operation{
+		Name:        "orchestrate-research",
+		Description: "Orchestrate distributed research using multiple drones",
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			return s.handleOrchestrateResearch(ctx, &schemas.WidescreenResearchInput{Parameters: params})
+		},
+	})
 
-    s.operations.Register("sequential-thinking", &operations.Operation{
-        Name:        "sequential-thinking",
-        Description: "Perform sequential thinking style reasoning",
-        Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-            return s.handleSequentialThinking(ctx, &schemas.WidescreenResearchInput{Parameters: params})
-        },
-    })
+	s.operations.Register("sequential-thinking", &operations.Operation{
+		Name:        "sequential-thinking",
+		Description: "Perform sequential thinking style reasoning",
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			return s.handleSequentialThinking(ctx, &schemas.WidescreenResearchInput{Parameters: params})
+		},
+	})
 
-    s.operations.Register("gcp-provision", &operations.Operation{
-        Name:        "gcp-provision",
-        Description: "Provision GCP resources for research",
-        Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-            return s.handleGCPProvision(ctx, &schemas.WidescreenResearchInput{Parameters: params})
-        },
-    })
+	s.operations.Register("gcp-provision", &operations.Operation{
+		Name:        "gcp-provision",
+		Description: "Provision GCP resources for research",
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			return s.handleGCPProvision(ctx, &schemas.WidescreenResearchInput{Parameters: params})
+		},
+	})
 
-    s.operations.Register("analyze-findings", &operations.Operation{
-        Name:        "analyze-findings",
-        Description: "Analyze research findings from drones",
-        Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-            return s.handleAnalyzeFindings(ctx, &schemas.WidescreenResearchInput{Parameters: params})
-        },
-    })
+	s.operations.Register("analyze-findings", &operations.Operation{
+		Name:        "analyze-findings",
+		Description: "Analyze research findings from drones",
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			return s.handleAnalyzeFindings(ctx, &schemas.WidescreenResearchInput{Parameters: params})
+		},
+	})
 }
 
 // registerResources registers available resources
@@ -258,12 +258,12 @@ func (s *WidescreenResearchServer) Start(ctx context.Context) error {
 	}
 
 	// Start the MCP server
-    return mcpserver.ServeStdio(s.mcpServer)
+	return mcpserver.ServeStdio(s.mcpServer)
 }
 
 // Shutdown gracefully shuts down the server
 func (s *WidescreenResearchServer) Shutdown() {
 	log.Println("Shutting down widescreen research server...")
 	s.orchestrator.Shutdown()
-    // No explicit Close method in current mcp-go server API
+	// No explicit Close method in current mcp-go server API
 }

@@ -1,2 +1,10 @@
 drone-mcp-template/.env
 .env
+
+spawn-mcp/
+.swarm/
+.claude-flow/
+.claude/
+cc_mcp_config.json
+MCP-SDK-Refactor-Spec.md
+project_spec.md
