@@ -8,3 +8,11 @@ spawn-mcp/
 cc_mcp_config.json
 MCP-SDK-Refactor-Spec.md
 project_spec.md
+
+# build artifacts
+go-sdk/
+docs/
+.feature-game/
+.mcp-dogfood/
+trees/
+specs/

@@ -533,6 +533,106 @@ func (o *Orchestrator) GetTemplates() []*ResearchTemplate {
 	return templates
 }
 
+// GetMCPClient returns the MCP client for direct access
+func (o *Orchestrator) GetMCPClient() *MCPClient {
+	return o.mcpClient
+}
+
+// RunWebsetsPipeline orchestrates the websets research pipeline
+func (o *Orchestrator) RunWebsetsPipeline(ctx context.Context, topic string, resultCount int) (*schemas.ResearchResult, error) {
+	log.Printf("Starting websets pipeline for topic: %s", topic)
+	
+	// Create websets operations handler
+	websetsOps := NewWebsetsOperations(o.mcpClient.websetsClient)
+	
+	// Step 1: Create webset
+	websetID, err := websetsOps.CreateWebset(ctx, topic, resultCount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create webset: %w", err)
+	}
+	log.Printf("Created webset with ID: %s", websetID)
+	
+	// Step 2: Wait for completion (15 minutes timeout)
+	if err := websetsOps.WaitForWebsetCompletion(ctx, websetID, 15*time.Minute); err != nil {
+		return nil, fmt.Errorf("webset processing failed: %w", err)
+	}
+	log.Printf("Webset %s completed successfully", websetID)
+	
+	// Step 3: Retrieve content items
+	items, err := websetsOps.ListContentItems(ctx, websetID, 100)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list content items: %w", err)
+	}
+	log.Printf("Retrieved %d content items from webset", len(items))
+	
+	// Step 4: Publish items to Pub/Sub for further processing
+	if len(items) > 0 {
+		topicName := fmt.Sprintf("websets-%s", websetID)
+		topic := o.pubsubClient.Topic(topicName)
+		
+		// Ensure topic exists
+		exists, err := topic.Exists(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check topic existence: %w", err)
+		}
+		if !exists {
+			topic, err = o.pubsubClient.CreateTopic(ctx, topicName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create topic: %w", err)
+			}
+		}
+		
+		// Publish items
+		for _, item := range items {
+			data, err := json.Marshal(item)
+			if err != nil {
+				log.Printf("Failed to marshal item: %v", err)
+				continue
+			}
+			
+			result := topic.Publish(ctx, &pubsub.Message{
+				Data: data,
+				Attributes: map[string]string{
+					"webset_id": websetID,
+					"type":      "content_item",
+				},
+			})
+			
+			// Wait for publish confirmation
+			if _, err := result.Get(ctx); err != nil {
+				log.Printf("Failed to publish item: %v", err)
+			}
+		}
+		
+		log.Printf("Published %d items to Pub/Sub topic %s", len(items), topicName)
+	}
+	
+	// Step 5: Generate research result
+	result := &schemas.ResearchResult{
+		SessionID:   websetID,
+		Status:      "completed",
+		ReportURL:   fmt.Sprintf("/websets/%s", websetID),
+		ReportData: map[string]interface{}{
+			"webset_id":  websetID,
+			"topic":      topic,
+			"item_count": len(items),
+			"items":      items,
+			"summary":    fmt.Sprintf("Websets research completed for topic '%s'. Retrieved %d items.", topic, len(items)),
+		},
+		Metrics: schemas.ResearchMetrics{
+			DronesProvisioned:   1, // websets acts as a single "drone"
+			DronesCompleted:     1,
+			DronesFailed:        0,
+			TotalDuration:       15 * time.Minute, // approximate
+			DataPointsCollected: len(items),
+			CostEstimate:        0.0, // can be calculated based on EXA pricing
+		},
+		CompletedAt: time.Now(),
+	}
+	
+	return result, nil
+}
+
 // Shutdown gracefully shuts down the orchestrator
 func (o *Orchestrator) Shutdown() {
 	log.Println("Shutting down orchestrator...")
