@@ -1,293 +1,257 @@
-# Widescreen Research - Comprehensive Research MCP Server
+# Widescreen Research MCP Server (Go)
 
-> Note: This repository contains both a Go-based coordinator/drone implementation (primary) and a Node sample under `widescreen-research-mcp/` for Exa-powered tools. The canonical control plane and workers are Go. The README sections below about Node remain as examples; see `cmd/coordinator`, `cmd/drone`, and `pkg/mcp` for the current Go control plane.
+This repository provides a Go-based Model Context Protocol (MCP) server for orchestrated, large-scale research. The canonical server is implemented in Go under `cmd/widescreen-research-mcp/` and exposes a single MCP tool that drives an elicitation-first workflow and several operations, including distributed research on Google Cloud, analysis, and EXA Websets integration.
 
-A powerful Model Context Protocol (MCP) server that provides comprehensive research capabilities powered by Exa AI. Designed for researchers, analysts, and AI assistants who need access to real-time web search, academic papers, company intelligence, and specialized research tools.
+Note: A standalone EXA Websets MCP server is vendored under `exa-mcp-server-websets/` and is launched as a subprocess by the orchestrator when you use Websets operations.
 
-## 🚀 Features
+## 🚀 Capabilities
 
-- **Real-time Web Search**: Powered by Exa AI's advanced search capabilities with content extraction
-- **Academic Research**: Search and access academic papers and research content
-- **Company Intelligence**: Comprehensive company research and competitor analysis
-- **Multi-platform Search**: LinkedIn, Wikipedia, GitHub, and general web search
-- **Content Extraction**: Direct URL crawling and content analysis
-- **Cloud-Ready**: Optimized for Google Cloud Run deployment with auto-scaling
-- **MCP Protocol**: Full Model Context Protocol compliance for seamless AI integration
+- Elicitation-driven session setup (topic, researcher_count, depth, output format, timeouts, priority)
+- Distributed research orchestration on Google Cloud (Cloud Run + Pub/Sub + Firestore)
+- Data analysis and report generation (Markdown report plus structured report object)
+- Sequential-thinking analysis using a Claude agent (mocked if `CLAUDE_API_KEY` is not set)
+- GCP provisioning helpers for Cloud Run, Pub/Sub, and Firestore
+- EXA Websets pipeline orchestration and direct Websets tool passthrough
 
-## 🛠️ Research Capabilities
+### MCP Surface
 
-### Core Research Tools
+- Tool name: `widescreen_research`
+- Arguments:
+  - `operation` string
+  - `session_id` string (elicitation session)
+  - `parameters_json` string (JSON-encoded map)
+  - `elicitation_answers_json` string (JSON-encoded map)
 
-- **`web_search`**: Real-time web search with intelligent content extraction
-- **`research_papers`**: Academic paper and research content discovery
-- **`company_research`**: Comprehensive company information gathering
-- **`crawl_url`**: Extract and analyze content from specific URLs
-- **`find_competitors`**: Identify and analyze business competitors
-- **`linkedin_search`**: Professional network and company research
-- **`wikipedia_search`**: Authoritative encyclopedia content
-- **`github_search`**: Open source project and developer research
+The server currently exposes tools only (no `resources`/`prompts`) due to the `mcp-go` server API in use.
 
-### Research Specializations
+### Operations
 
+- orchestrate-research: Provision and coordinate multiple research “drones” on Cloud Run; collect results via Pub/Sub; generate a Markdown report and structured report
+- sequential-thinking: Produce structured thought steps and a recommendation for a given problem/context
+- gcp-provision: Provision GCP resources
+  - cloud_run: deploy lightweight services
+  - pubsub: create topics and optional subscriptions
+  - firestore: create collections
+- analyze-findings: Analyze drone results to extract insights, patterns, statistics, and visualizations
+- websets-orchestrate: Full EXA Websets pipeline (create → wait → list items → publish to Pub/Sub)
+- websets-call: Direct passthrough to EXA’s `websets_manager` tool with custom arguments
+
+Implementation references:
+
+```1:36:cmd/widescreen-research-mcp/server/server.go
+// WidescreenResearchServer is the main MCP server that provides widescreen research capabilities
+type WidescreenResearchServer struct { ... }
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Academic      │    │   Business      │    │   Technical     │
-│   Research      │    │   Intelligence  │    │   Research      │
-├─────────────────┤    ├─────────────────┤    ├─────────────────┤
-│ • Papers        │    │ • Companies     │    │ • GitHub        │
-│ • Citations     │    │ • Competitors   │    │ • Documentation │
-│ • Authors       │    │ • Market Data   │    │ • Code Examples │
-│ • Institutions  │    │ • LinkedIn      │    │ • Tech Trends   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+
+```61:114:cmd/widescreen-research-mcp/server/server.go
+// registerWidescreenResearchTool registers the main tool that handles all operations
+func (s *WidescreenResearchServer) registerWidescreenResearchTool() { ... }
+```
+
+```247:297:cmd/widescreen-research-mcp/server/server.go
+// registerOperations registers all available operations
+func (s *WidescreenResearchServer) registerOperations() { ... }
 ```
 
 ## 📋 Prerequisites
 
-- Node.js 16 or later
-- Exa AI API key ([Get one here](https://exa.ai))
-- Google Cloud Platform account (for deployment)
+- Go 1.23+
+- Google Cloud project and credentials (Cloud Run, Pub/Sub, Firestore)
+- For Websets operations: EXA API key and either the EXA Websets MCP binary or Node.js 18+ for fallback
+- Optional: `CLAUDE_API_KEY` for richer sequential thinking and report generation
 
-## 🔧 Installation & Setup
+## 🔧 Setup
 
-### Local Development
+1) Clone and download deps
 
-1. **Clone the repository**:
 ```bash
 git clone https://github.com/your-org/widescreen-research.git
 cd widescreen-research
+go mod download
 ```
 
-2. **Install dependencies**:
-```bash
-npm install
-```
-
-3. **Set up environment variables**:
-```bash
-export EXA_API_KEY="your-exa-api-key"
-export DRONE_TYPE="research"
-```
-
-4. **Run the server**:
-```bash
-npm start
-```
-
-### Cloud Deployment
-
-Deploy to Google Cloud Run for production use:
+2) Build the server
 
 ```bash
-# Build and deploy
-export GOOGLE_CLOUD_PROJECT="your-project-id"
-export DRONE_TYPE="research"
-
-npm run build-image
-npm run deploy
+go build -o widescreen-research ./cmd/widescreen-research-mcp
 ```
 
-## 🎯 Usage
+3) Install/prepare EXA Websets MCP (only if you plan to use Websets)
 
-### MCP Client Integration
+- Recommended: install the published binary globally:
 
-#### Claude Desktop
+```bash
+npm i -g exa-websets-mcp-server
+```
 
-Add to your `claude_desktop_config.json`:
+- Or build the vendored server (fallback launched as `node ./build/index.js`):
+
+```bash
+cd exa-mcp-server-websets
+npm ci && npm run build
+cd -
+```
+
+## ⚙️ Environment Variables
+
+- `GOOGLE_CLOUD_PROJECT` (required): your GCP project ID
+- `GOOGLE_CLOUD_REGION` (optional, default `us-central1`)
+- `EXA_API_KEY` (required for Websets operations)
+- `CLAUDE_API_KEY` (optional)
+
+## ▶️ Run
+
+Run the compiled binary. MCP clients (e.g., Claude Desktop) communicate over stdio.
+
+```bash
+./widescreen-research
+```
+
+### Claude Desktop configuration
+
+Add to `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
     "widescreen-research": {
-      "command": "node",
-      "args": ["/path/to/widescreen-research/index.js"],
+      "command": "/absolute/path/to/widescreen-research",
       "env": {
+        "GOOGLE_CLOUD_PROJECT": "your-project-id",
+        "GOOGLE_CLOUD_REGION": "us-central1",
         "EXA_API_KEY": "your-exa-api-key",
-        "DRONE_TYPE": "research"
+        "CLAUDE_API_KEY": "optional"
       }
     }
   }
 }
 ```
 
-#### Direct MCP Usage
+### Inspect with MCP Inspector
 
 ```bash
-# Test with MCP Inspector
-npx @modelcontextprotocol/inspector node index.js
+npx @modelcontextprotocol/inspector /absolute/path/to/widescreen-research
 ```
 
-### Research Examples
+## 🎯 Usage Examples
 
-#### Academic Research
-```javascript
-// Search for AI safety papers
+### Start elicitation
+
+```json
 {
-  "method": "tools/call",
-  "params": {
-    "name": "research_papers",
-    "arguments": {
-      "query": "AI safety alignment research",
-      "numResults": 10,
-      "maxCharacters": 5000
-    }
+  "tool": "widescreen_research",
+  "arguments": { "operation": "start" }
+}
+```
+
+You’ll receive an `elicitation` response with `session_id` and questions. Keep sending answers via `elicitation_answers_json` until the server returns `type=ready`.
+
+### Orchestrate research
+
+```json
+{
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "orchestrate-research",
+    "session_id": "<from-elicitation>",
+    "parameters_json": "{}"
   }
 }
 ```
 
-#### Company Intelligence
-```javascript
-// Research a company and its competitors
+Result contains `report_url` (e.g., `reports/report_<session>.md`) and structured `report_data`.
+
+### Sequential thinking
+
+```json
 {
-  "method": "tools/call", 
-  "params": {
-    "name": "company_research",
-    "arguments": {
-      "query": "OpenAI company information funding",
-      "numResults": 5
-    }
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "sequential-thinking",
+    "parameters_json": "{\"problem\":\"Complex problem\",\"context\":\"Optional\",\"max_steps\":10}"
   }
 }
 ```
 
-#### Technical Research
-```javascript
-// Find GitHub repositories
+### GCP provision (Cloud Run)
+
+```json
 {
-  "method": "tools/call",
-  "params": {
-    "name": "github_search", 
-    "arguments": {
-      "query": "machine learning frameworks",
-      "numResults": 8
-    }
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "gcp-provision",
+    "parameters_json": "{\"resource_type\":\"cloud_run\",\"count\":1,\"region\":\"us-central1\",\"config\":{\"image\":\"gcr.io/cloudrun/hello\",\"cpu\":\"1000m\",\"memory\":\"512Mi\"}}"
   }
 }
 ```
 
-## 🧪 Testing
+### Analyze findings
 
-### Health Check
-```bash
-curl http://localhost:8080/health
+```json
+{
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "analyze-findings",
+    "parameters_json": "{\"analysis_type\":\"comprehensive\",\"data\":[] }"
+  }
+}
 ```
 
-### Research Status
-```bash
-curl http://localhost:8080/
+### Websets pipeline (EXA)
+
+```json
+{
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "websets-orchestrate",
+    "parameters_json": "{\"topic\":\"AI safety\",\"result_count\":100}"
+  }
+}
 ```
 
-### Tool Testing
-```bash
-# Test web search
-echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "web_search", "arguments": {"query": "latest AI research", "numResults": 3}}}' | node index.js
+### Direct Websets call (passthrough)
 
-# Test company research  
-echo '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "company_research", "arguments": {"query": "Tesla", "numResults": 5}}}' | node index.js
-```
+```json
+{
+  "tool": "widescreen_research",
+  "arguments": {
+    "operation": "websets-call",
+    "parameters_json": "{\"operation\":\"create_webset\",\"webset\":{\"searchQuery\":\"AI safety\"}}"
+  }
+}
+``;
+
+## 📦 Outputs
+
+- ElicitationResponse: `type` (elicitation|ready), questions, `session_id`, and derived `config`
+- ResearchResult: `status`, `report_url`, `report_data` (structured), and `metrics`
+
+Key schema types are defined in `cmd/widescreen-research-mcp/schemas/schemas.go`.
 
 ## 🏗️ Architecture
 
-### Research Server Components
-
 ```
-├── index.js                 # Main server entry point
-├── app.js                   # Express app with health endpoints
-├── mcp-server.js            # MCP protocol implementation
-├── drones/
-│   ├── research.js          # Research tools (Exa AI integration)
-│   ├── scraper.js           # Web scraping capabilities
-│   ├── processor.js         # Data processing tools
-│   └── generic.js           # Basic utilities
-└── utils/
-    ├── logging.js           # Structured logging
-    └── metadata.js          # GCP metadata utilities
+Claude (client) ⇄ widescreen-research (Go MCP server) ⇄ Orchestrator
+                                              ├─ GCP: Cloud Run, Pub/Sub, Firestore
+                                              └─ Subprocess MCP: EXA Websets server
 ```
 
-### Exa AI Integration
+## 📚 Repository Map (relevant)
 
-The server integrates directly with Exa AI's powerful search API:
+- `cmd/widescreen-research-mcp/`
+  - `server/` MCP tool and operation registration, elicitation manager
+  - `orchestrator/` GCP provisioning, research coordination, EXA Websets client
+  - `operations/` `gcp_provisioner.go`, `data_analyzer.go`, `sequential_thinking.go`
+  - `schemas/` Request/response/report types
+- `exa-mcp-server-websets/` Vendored EXA Websets MCP server (Node/TypeScript)
+- `pkg/mcp/` Alternate MCP surface for coordinator (drone fleet mgmt; separate from this server)
 
-- **Real-time Search**: Live web crawling and content extraction
-- **Semantic Understanding**: AI-powered result ranking and relevance
-- **Content Processing**: Automatic summarization and key information extraction
-- **Multi-modal Results**: Text, links, and metadata in structured format
+## ⚠️ Notes & Limitations
 
-## 🌟 Key Features
-
-✅ **Exa AI Powered**: Advanced search capabilities with real-time web crawling  
-✅ **MCP Compliant**: Full Model Context Protocol support for AI integration  
-✅ **Cloud Optimized**: Designed for Google Cloud Run with auto-scaling  
-✅ **Research Focused**: 8 specialized research tools for different use cases  
-✅ **Production Ready**: Comprehensive logging, health checks, and error handling  
-✅ **Lightweight**: ~2MB container images with fast cold starts  
-
-## 🔧 Configuration
-
-### Environment Variables
-
-- `EXA_API_KEY`: Your Exa AI API key (required)
-- `DRONE_TYPE`: Server type, set to "research" for full capabilities
-- `PORT`: Server port (default: 8080)
-- `NODE_ENV`: Environment (development/production)
-- `LOG_LEVEL`: Logging level (info/debug/error)
-
-### Research Tool Configuration
-
-Each research tool can be configured with parameters:
-
-- `numResults`: Number of search results (1-50)
-- `maxCharacters`: Content extraction limit (500-10000)
-- `excludeDomain`: Domains to exclude from results
-- `category`: Content category filtering
-
-## 🚧 Roadmap
-
-- **Enhanced Analytics**: Research trend analysis and insights
-- **Citation Management**: Academic citation formatting and tracking
-- **Multi-language Support**: Research in multiple languages
-- **Custom Filters**: Advanced search filtering and categorization
-- **Research Workflows**: Automated research pipelines
-- **Data Export**: Research results in various formats (PDF, CSV, JSON)
-
-## 📚 API Reference
-
-### Research Tools
-
-#### `web_search(query, numResults?)`
-Real-time web search with content extraction.
-
-#### `research_papers(query, maxCharacters?, numResults?)`
-Search academic papers and research content.
-
-#### `company_research(query, numResults?)`
-Comprehensive company information gathering.
-
-#### `crawl_url(url)`
-Extract content from specific URLs.
-
-#### `find_competitors(query, excludeDomain?, numResults?)`
-Identify business competitors.
-
-#### `linkedin_search(query, numResults?)`
-Search LinkedIn for professional content.
-
-#### `wikipedia_search(query, numResults?)`
-Search Wikipedia articles.
-
-#### `github_search(query, numResults?)`
-Search GitHub repositories and code.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add research capabilities or improvements
-4. Test with various research scenarios
-5. Submit a pull request
+- Only tools are exposed (no MCP `resources` or `prompts`) with the current `mcp-go` server API in use.
+- Websets operations require `EXA_API_KEY` and the EXA Websets server to be available on PATH (or Node fallback built locally).
 
 ## 📄 License
 
-Apache 2.0 License - see LICENSE file for details.
+Apache 2.0 License - see LICENSE.
 
----
-
-**Powered by Exa AI • Built for Comprehensive Research • MCP Protocol Compliant**
