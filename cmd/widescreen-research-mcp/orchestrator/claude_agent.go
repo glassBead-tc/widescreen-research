@@ -54,7 +54,7 @@ func (a *ClaudeAgent) GenerateSubQueries(ctx context.Context, topic string, numQ
 // GenerateReport generates a research report from collected data
 func (a *ClaudeAgent) GenerateReport(ctx context.Context, config *schemas.ResearchConfig, results []schemas.DroneResult, analysis *DataAnalysis) (*schemas.ResearchReport, error) {
 	// Process results into a structured report
-	
+
 	report := &schemas.ResearchReport{
 		Title:       fmt.Sprintf("Research Report: %s", config.Topic),
 		Executive:   a.generateExecutiveSummary(config, results, analysis),
@@ -77,9 +77,9 @@ func (a *ClaudeAgent) GenerateReport(ctx context.Context, config *schemas.Resear
 // generateExecutiveSummary generates an executive summary
 func (a *ClaudeAgent) generateExecutiveSummary(config *schemas.ResearchConfig, results []schemas.DroneResult, analysis *DataAnalysis) string {
 	summary := fmt.Sprintf("Executive Summary: %s\n\n", config.Topic)
-	summary += fmt.Sprintf("This research was conducted using %d parallel research drones over %v.\n\n", 
+	summary += fmt.Sprintf("This research was conducted using %d parallel research drones over %v.\n\n",
 		config.ResearcherCount, analysis.Duration)
-	
+
 	summary += "Key Findings:\n"
 	for i, insight := range analysis.TopInsights {
 		if i >= 3 {
@@ -127,7 +127,7 @@ func (a *ClaudeAgent) generateIntroduction(config *schemas.ResearchConfig) strin
 
 func (a *ClaudeAgent) generateKeyFindings(results []schemas.DroneResult, analysis *DataAnalysis) string {
 	findings := "Based on the analysis of data from all research drones, the following key findings emerged:\n\n"
-	
+
 	// Group findings by status
 	successCount := 0
 	for _, result := range results {
@@ -135,10 +135,10 @@ func (a *ClaudeAgent) generateKeyFindings(results []schemas.DroneResult, analysi
 			successCount++
 		}
 	}
-	
+
 	findings += fmt.Sprintf("- Successfully collected data from %d out of %d drones\n", successCount, len(results))
 	findings += fmt.Sprintf("- Identified %d key patterns across the dataset\n", len(analysis.Patterns))
-	
+
 	return findings
 }
 
@@ -163,7 +163,7 @@ func (a *ClaudeAgent) generateMethodologySection(config *schemas.ResearchConfig)
 
 func (a *ClaudeAgent) aggregateData(results []schemas.DroneResult) map[string]interface{} {
 	aggregated := make(map[string]interface{})
-	
+
 	// Collect all data from successful drones
 	var allData []map[string]interface{}
 	for _, result := range results {
@@ -171,17 +171,17 @@ func (a *ClaudeAgent) aggregateData(results []schemas.DroneResult) map[string]in
 			allData = append(allData, result.Data)
 		}
 	}
-	
+
 	aggregated["drone_data"] = allData
 	aggregated["total_results"] = len(results)
 	aggregated["successful_results"] = len(allData)
-	
+
 	return aggregated
 }
 
 func (a *ClaudeAgent) extractSources(results []schemas.DroneResult) []string {
 	sourceMap := make(map[string]bool)
-	
+
 	for _, result := range results {
 		if sources, ok := result.Data["sources"].([]interface{}); ok {
 			for _, source := range sources {
@@ -191,12 +191,12 @@ func (a *ClaudeAgent) extractSources(results []schemas.DroneResult) []string {
 			}
 		}
 	}
-	
+
 	sources := make([]string, 0, len(sourceMap))
 	for source := range sourceMap {
 		sources = append(sources, source)
 	}
-	
+
 	return sources
 }
 

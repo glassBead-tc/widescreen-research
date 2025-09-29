@@ -13,8 +13,8 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
-	"github.com/google/uuid"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -44,13 +44,13 @@ type Orchestrator struct {
 
 // ResearchSession represents an active research session
 type ResearchSession struct {
-	Config      *schemas.ResearchConfig
-	Drones      map[string]*DroneInfo
-	Queue       *ResearchQueue
-	StartTime   time.Time
-	Status      string
-	Results     []schemas.DroneResult
-	Report      *schemas.ResearchReport
+	Config    *schemas.ResearchConfig
+	Drones    map[string]*DroneInfo
+	Queue     *ResearchQueue
+	StartTime time.Time
+	Status    string
+	Results   []schemas.DroneResult
+	Report    *schemas.ResearchReport
 }
 
 // DroneInfo contains information about a deployed drone
@@ -294,7 +294,7 @@ func (o *Orchestrator) deployDrone(ctx context.Context, droneID string, config *
 				},
 			},
 			MaxInstanceRequestConcurrency: 1,
-			Timeout:                      &durationpb.Duration{Seconds: int64(config.TimeoutMinutes * 60)},
+			Timeout:                       &durationpb.Duration{Seconds: int64(config.TimeoutMinutes * 60)},
 		},
 	}
 
@@ -355,7 +355,7 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 		// and the query. The other info is passed via env vars.
 		task := map[string]interface{}{
 			"subject": subQueries[i],
-			"run_id": session.Config.SessionID,
+			"run_id":  session.Config.SessionID,
 		}
 
 		if err := o.sendInstructionsToDrone(ctx, drone, task); err != nil {
@@ -437,7 +437,6 @@ func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSess
 		resultFilePaths = append(resultFilePaths, resultFilePath)
 	}
 
-
 	// 2. Analyze collected data
 	analysis, err := o.analyzeResults(ctx, session.Results)
 	if err != nil {
@@ -464,7 +463,6 @@ func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSess
 		return nil, fmt.Errorf("failed to save markdown report: %w", err)
 	}
 	log.Printf("Final report saved to %s", reportFilePath)
-
 
 	// 5. Store structured report in Firestore
 	if err := o.storeReport(ctx, report); err != nil {
@@ -536,7 +534,7 @@ func (o *Orchestrator) GetTemplates() []*ResearchTemplate {
 // Shutdown gracefully shuts down the orchestrator
 func (o *Orchestrator) Shutdown() {
 	log.Println("Shutting down orchestrator...")
-	
+
 	// Close clients
 	if o.firestoreClient != nil {
 		o.firestoreClient.Close()
@@ -547,10 +545,10 @@ func (o *Orchestrator) Shutdown() {
 	if o.runClient != nil {
 		o.runClient.Close()
 	}
-	
+
 	// Shutdown MCP client
 	o.mcpClient.Shutdown()
-	
+
 	// Shutdown Claude agent
 	o.claudeAgent.Shutdown()
 }

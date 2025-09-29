@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/operations"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/orchestrator"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 // WidescreenResearchServer is the main MCP server that provides widescreen research capabilities
 type WidescreenResearchServer struct {
-	server       *mcp.Server
+	server       *server.MCPServer
 	orchestrator *orchestrator.Orchestrator
 	operations   *operations.OperationRegistry
 	elicitation  *ElicitationManager
@@ -23,15 +24,11 @@ type WidescreenResearchServer struct {
 // NewWidescreenResearchServer creates a new instance of the widescreen research server
 func NewWidescreenResearchServer() (*WidescreenResearchServer, error) {
 	// Create MCP server
-	mcpServer := mcp.NewServer(
+	mcpServer := server.NewMCPServer(
 		"widescreen-research",
 		"1.0.0",
-		mcp.WithCapabilities([]string{
-			"tools",
-			"prompts",
-			"resources",
-			"experimental/elicitation",
-		}),
+		server.WithToolCapabilities(true),
+		server.WithRecovery(),
 	)
 
 	// Create orchestrator
@@ -70,25 +67,51 @@ func NewWidescreenResearchServer() (*WidescreenResearchServer, error) {
 
 // registerWidescreenResearchTool registers the main tool that handles all operations
 func (s *WidescreenResearchServer) registerWidescreenResearchTool() {
-	s.server.RegisterTool("widescreen-research", mcp.Tool{
-		Description: "Perform comprehensive widescreen research using distributed research drones",
-		InputSchema: schemas.WidescreenResearchInput{},
-		Handler: func(ctx context.Context, request interface{}) (interface{}, error) {
-			input, ok := request.(*schemas.WidescreenResearchInput)
-			if !ok {
-				return nil, fmt.Errorf("invalid input type")
-			}
+	tool := mcp.NewTool("widescreen-research",
+		mcp.WithDescription("Perform comprehensive widescreen research using distributed research drones"),
+		mcp.WithString("operation", mcp.Required(), mcp.Description("Research operation to perform")),
+		mcp.WithString("query", mcp.Required(), mcp.Description("Research query or topic")),
+	)
 
-			// Check if we need elicitation
-			if input.Operation == "" || input.Operation == "start" {
-				// Start elicitation process
-				return s.handleElicitation(ctx, input)
-			}
+	s.server.AddTool(tool, s.handleWidescreenResearchTool)
+}
 
-			// Execute the requested operation
-			return s.executeOperation(ctx, input)
+// handleWidescreenResearchTool is the tool handler function
+func (s *WidescreenResearchServer) handleWidescreenResearchTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Extract parameters from arguments
+	args, ok := request.Params.Arguments.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid arguments format")
+	}
+
+	operation, _ := args["operation"].(string)
+	query, _ := args["query"].(string)
+
+	// Create input struct
+	input := &schemas.WidescreenResearchInput{
+		Operation: operation,
+		Parameters: map[string]interface{}{
+			"query": query,
 		},
-	})
+	}
+
+	// Check if we need elicitation
+	if input.Operation == "" || input.Operation == "start" {
+		// Start elicitation process
+		result, err := s.handleElicitation(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("%v", result)), nil
+	}
+
+	// Execute the requested operation
+	result, err := s.executeOperation(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return mcp.NewToolResultText(fmt.Sprintf("%v", result)), nil
 }
 
 // handleElicitation manages the elicitation process
@@ -145,7 +168,7 @@ func (s *WidescreenResearchServer) executeOperation(ctx context.Context, input *
 	case "analyze-findings":
 		return s.handleAnalyzeFindings(ctx, input)
 	default:
-		return operation.Execute(ctx, input.Parameters)
+		return operation.Handler(ctx, input.Parameters)
 	}
 }
 
@@ -190,84 +213,116 @@ func (s *WidescreenResearchServer) registerOperations() {
 	s.operations.Register("orchestrate-research", &operations.Operation{
 		Name:        "orchestrate-research",
 		Description: "Orchestrate distributed research using multiple drones",
-		Handler:     s.handleOrchestrateResearch,
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			input := &schemas.WidescreenResearchInput{Parameters: params}
+			return s.handleOrchestrateResearch(ctx, input)
+		},
 	})
 
 	s.operations.Register("sequential-thinking", &operations.Operation{
 		Name:        "sequential-thinking",
 		Description: "Perform sequential thinking style reasoning",
-		Handler:     s.handleSequentialThinking,
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			input := &schemas.WidescreenResearchInput{Parameters: params}
+			return s.handleSequentialThinking(ctx, input)
+		},
 	})
 
 	s.operations.Register("gcp-provision", &operations.Operation{
 		Name:        "gcp-provision",
 		Description: "Provision GCP resources for research",
-		Handler:     s.handleGCPProvision,
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			input := &schemas.WidescreenResearchInput{Parameters: params}
+			return s.handleGCPProvision(ctx, input)
+		},
 	})
 
 	s.operations.Register("analyze-findings", &operations.Operation{
 		Name:        "analyze-findings",
 		Description: "Analyze research findings from drones",
-		Handler:     s.handleAnalyzeFindings,
+		Handler: func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+			input := &schemas.WidescreenResearchInput{Parameters: params}
+			return s.handleAnalyzeFindings(ctx, input)
+		},
 	})
 }
 
 // registerResources registers available resources
 func (s *WidescreenResearchServer) registerResources() {
 	// Register research reports resource
-	s.server.RegisterResource("research-reports", mcp.Resource{
-		URI:         "research://reports",
-		Name:        "Research Reports",
-		Description: "Access completed research reports",
-		MimeType:    "application/json",
-		Handler: func(ctx context.Context, uri string) (interface{}, error) {
-			// Return list of available reports
-			reports := s.orchestrator.GetReports()
-			return json.Marshal(reports)
-		},
-	})
+	reportsResource := mcp.NewResource("research://reports", "Research Reports",
+		mcp.WithResourceDescription("Access completed research reports"),
+		mcp.WithMIMEType("application/json"),
+	)
+	s.server.AddResource(reportsResource, s.handleReportsResource)
 
 	// Register research templates resource
-	s.server.RegisterResource("research-templates", mcp.Resource{
-		URI:         "research://templates",
-		Name:        "Research Templates",
-		Description: "Pre-orchestrated research workflows",
-		MimeType:    "application/json",
-		Handler: func(ctx context.Context, uri string) (interface{}, error) {
-			// Return available templates
-			templates := s.orchestrator.GetTemplates()
-			return json.Marshal(templates)
-		},
-	})
+	templatesResource := mcp.NewResource("research://templates", "Research Templates",
+		mcp.WithResourceDescription("Pre-orchestrated research workflows"),
+		mcp.WithMIMEType("application/json"),
+	)
+	s.server.AddResource(templatesResource, s.handleTemplatesResource)
+}
+
+// handleReportsResource handles requests for research reports
+func (s *WidescreenResearchServer) handleReportsResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	reports := s.orchestrator.GetReports()
+	data, err := json.Marshal(reports)
+	if err != nil {
+		return nil, err
+	}
+	return []mcp.ResourceContents{
+		mcp.TextResourceContents{Text: string(data)},
+	}, nil
+}
+
+// handleTemplatesResource handles requests for research templates
+func (s *WidescreenResearchServer) handleTemplatesResource(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	templates := s.orchestrator.GetTemplates()
+	data, err := json.Marshal(templates)
+	if err != nil {
+		return nil, err
+	}
+	return []mcp.ResourceContents{
+		mcp.TextResourceContents{Text: string(data)},
+	}, nil
 }
 
 // registerPrompts registers available prompts
 func (s *WidescreenResearchServer) registerPrompts() {
 	// Register research planning prompt
-	s.server.RegisterPrompt("research-planning", mcp.Prompt{
-		Name:        "Research Planning",
-		Description: "Plan a comprehensive research strategy",
-		Arguments: []mcp.PromptArgument{
-			{
-				Name:        "topic",
-				Description: "Research topic",
-				Required:    true,
-			},
-			{
-				Name:        "scope",
-				Description: "Research scope",
-				Required:    false,
-			},
-		},
-		Handler: func(ctx context.Context, args map[string]interface{}) (string, error) {
-			topic := args["topic"].(string)
-			scope := ""
-			if s, ok := args["scope"].(string); ok {
-				scope = s
-			}
-			return fmt.Sprintf("Research Plan for: %s\nScope: %s\n\n[Planning template here]", topic, scope), nil
-		},
-	})
+	prompt := mcp.NewPrompt("research-planning",
+		mcp.WithPromptDescription("Plan a comprehensive research strategy"),
+		mcp.WithArgument("topic", mcp.RequiredArgument(), mcp.ArgumentDescription("Research topic")),
+		mcp.WithArgument("scope", mcp.ArgumentDescription("Research scope")),
+	)
+
+	s.server.AddPrompt(prompt, s.handleResearchPlanningPrompt)
+}
+
+// handleResearchPlanningPrompt handles the research planning prompt
+func (s *WidescreenResearchServer) handleResearchPlanningPrompt(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+	args := request.Params.Arguments
+	topic := args["topic"]
+	scope := args["scope"]
+
+	// Generate research planning prompt
+	promptText := fmt.Sprintf(`Research Plan for: %s
+Scope: %s
+
+## Suggested Research Strategy
+1. Initial exploration and background research
+2. Identify key stakeholders and sources
+3. Conduct comprehensive analysis
+4. Synthesize findings and insights
+
+Please provide additional context or specific requirements for this research.`, topic, scope)
+
+	messages := []mcp.PromptMessage{
+		mcp.NewPromptMessage(mcp.RoleUser, mcp.NewTextContent(promptText)),
+	}
+
+	return mcp.NewGetPromptResult("Research planning strategy", messages), nil
 }
 
 // Start starts the MCP server
@@ -277,13 +332,13 @@ func (s *WidescreenResearchServer) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize orchestrator: %w", err)
 	}
 
-	// Start the MCP server
-	return s.server.Serve(ctx)
+	// MCP server is ready to handle requests
+	log.Println("Widescreen research MCP server started")
+	return nil
 }
 
 // Shutdown gracefully shuts down the server
 func (s *WidescreenResearchServer) Shutdown() {
 	log.Println("Shutting down widescreen research server...")
 	s.orchestrator.Shutdown()
-	s.server.Close()
 }

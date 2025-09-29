@@ -51,22 +51,22 @@ type ResearchConfig struct {
 
 // ResearchResult represents the result of a research operation
 type ResearchResult struct {
-	SessionID    string                 `json:"session_id"`
-	Status       string                 `json:"status"`
-	ReportURL    string                 `json:"report_url,omitempty"`
-	ReportData   interface{}            `json:"report_data,omitempty"`
-	Metrics      ResearchMetrics        `json:"metrics"`
-	CompletedAt  time.Time              `json:"completed_at"`
+	SessionID   string          `json:"session_id"`
+	Status      string          `json:"status"`
+	ReportURL   string          `json:"report_url,omitempty"`
+	ReportData  interface{}     `json:"report_data,omitempty"`
+	Metrics     ResearchMetrics `json:"metrics"`
+	CompletedAt time.Time       `json:"completed_at"`
 }
 
 // ResearchMetrics contains metrics about the research process
 type ResearchMetrics struct {
-	DronesProvisioned int           `json:"drones_provisioned"`
-	DronesCompleted   int           `json:"drones_completed"`
-	DronesFailed      int           `json:"drones_failed"`
-	TotalDuration     time.Duration `json:"total_duration"`
-	DataPointsCollected int         `json:"data_points_collected"`
-	CostEstimate      float64       `json:"cost_estimate"`
+	DronesProvisioned   int           `json:"drones_provisioned"`
+	DronesCompleted     int           `json:"drones_completed"`
+	DronesFailed        int           `json:"drones_failed"`
+	TotalDuration       time.Duration `json:"total_duration"`
+	DataPointsCollected int           `json:"data_points_collected"`
+	CostEstimate        float64       `json:"cost_estimate"`
 }
 
 // DroneTask represents the input for a single research drone
@@ -79,12 +79,12 @@ type DroneTask struct {
 
 // DroneResult represents the result from a single research drone
 type DroneResult struct {
-	DroneID      string                 `json:"drone_id"`
-	Status       string                 `json:"status"`
-	Data         map[string]interface{} `json:"data"`
-	Error        string                 `json:"error,omitempty"`
-	CompletedAt  time.Time              `json:"completed_at"`
-	ProcessingTime time.Duration        `json:"processing_time"`
+	DroneID        string                 `json:"drone_id"`
+	Status         string                 `json:"status"`
+	Data           map[string]interface{} `json:"data"`
+	Error          string                 `json:"error,omitempty"`
+	CompletedAt    time.Time              `json:"completed_at"`
+	ProcessingTime time.Duration          `json:"processing_time"`
 }
 
 // GCPProvisionRequest represents a request to provision GCP resources
@@ -104,51 +104,51 @@ type GCPProvisionResponse struct {
 
 // GCPResource represents a provisioned GCP resource
 type GCPResource struct {
-	ID           string    `json:"id"`
-	Type         string    `json:"type"`
-	URL          string    `json:"url,omitempty"`
-	Status       string    `json:"status"`
-	Region       string    `json:"region"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	URL       string    `json:"url,omitempty"`
+	Status    string    `json:"status"`
+	Region    string    `json:"region"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // SequentialThinkingRequest represents a sequential thinking request
 type SequentialThinkingRequest struct {
-	Problem     string   `json:"problem"`
-	Context     string   `json:"context,omitempty"`
-	Steps       []string `json:"steps,omitempty"`
-	MaxSteps    int      `json:"max_steps,omitempty"`
+	Problem  string   `json:"problem"`
+	Context  string   `json:"context,omitempty"`
+	Steps    []string `json:"steps,omitempty"`
+	MaxSteps int      `json:"max_steps,omitempty"`
 }
 
 // SequentialThinkingResponse represents the response from sequential thinking
 type SequentialThinkingResponse struct {
-	Thoughts []ThoughtStep `json:"thoughts"`
-	Solution string        `json:"solution"`
-	Confidence float64     `json:"confidence"`
+	Thoughts   []ThoughtStep `json:"thoughts"`
+	Solution   string        `json:"solution"`
+	Confidence float64       `json:"confidence"`
 }
 
 // ThoughtStep represents a single step in sequential thinking
 type ThoughtStep struct {
-	Step       int    `json:"step"`
-	Thought    string `json:"thought"`
-	Reasoning  string `json:"reasoning"`
+	Step       int     `json:"step"`
+	Thought    string  `json:"thought"`
+	Reasoning  string  `json:"reasoning"`
 	Confidence float64 `json:"confidence"`
 }
 
 // DataAnalysisRequest represents a request to analyze research data
 type DataAnalysisRequest struct {
-	Data       []DroneResult `json:"data"`
-	AnalysisType string      `json:"analysis_type"`
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Data         []DroneResult          `json:"data"`
+	AnalysisType string                 `json:"analysis_type"`
+	Parameters   map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // DataAnalysisResponse represents the response from data analysis
 type DataAnalysisResponse struct {
-	Summary    string                 `json:"summary"`
-	Insights   []string               `json:"insights"`
-	Patterns   []Pattern              `json:"patterns"`
-	Statistics map[string]interface{} `json:"statistics"`
-	Visualizations []Visualization    `json:"visualizations,omitempty"`
+	Summary        string                 `json:"summary"`
+	Insights       []string               `json:"insights"`
+	Patterns       []Pattern              `json:"patterns"`
+	Statistics     map[string]interface{} `json:"statistics"`
+	Visualizations []Visualization        `json:"visualizations,omitempty"`
 }
 
 // Pattern represents a discovered pattern in the data

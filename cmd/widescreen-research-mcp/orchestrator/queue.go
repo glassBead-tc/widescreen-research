@@ -13,12 +13,12 @@ import (
 
 // ResearchQueue manages the queue for collecting research results
 type ResearchQueue struct {
-	sessionID     string
-	subscription  *pubsub.Subscription
-	results       []schemas.DroneResult
-	mu            sync.Mutex
-	resultChan    chan schemas.DroneResult
-	errorChan     chan error
+	sessionID    string
+	subscription *pubsub.Subscription
+	results      []schemas.DroneResult
+	mu           sync.Mutex
+	resultChan   chan schemas.DroneResult
+	errorChan    chan error
 }
 
 // NewResearchQueue creates a new research queue

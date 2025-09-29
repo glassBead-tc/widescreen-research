@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/glassBead-tc/widescreen-research/pkg/drone"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/glassBead-tc/widescreen-research/pkg/drone"
 )
 
 func main() {

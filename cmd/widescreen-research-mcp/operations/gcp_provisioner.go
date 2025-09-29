@@ -10,8 +10,8 @@ import (
 	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
-	"github.com/google/uuid"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -87,7 +87,7 @@ func (gp *GCPProvisioner) provisionCloudRun(ctx context.Context, request *schema
 
 	for i := 0; i < request.Count; i++ {
 		resourceID := fmt.Sprintf("service-%s-%d", uuid.New().String()[:8], i)
-		
+
 		// Extract configuration
 		image := "gcr.io/cloudrun/hello" // Default image
 		if img, ok := request.Config["image"].(string); ok {
@@ -125,7 +125,7 @@ func (gp *GCPProvisioner) provisionCloudRun(ctx context.Context, request *schema
 					},
 				},
 				MaxInstanceRequestConcurrency: 100,
-				Timeout:                      &durationpb.Duration{Seconds: timeout},
+				Timeout:                       &durationpb.Duration{Seconds: timeout},
 			},
 		}
 
@@ -180,7 +180,7 @@ func (gp *GCPProvisioner) provisionPubSub(ctx context.Context, request *schemas.
 
 	for i := 0; i < request.Count; i++ {
 		topicID := fmt.Sprintf("topic-%s-%d", uuid.New().String()[:8], i)
-		
+
 		// Create topic
 		topic, err := gp.pubsubClient.CreateTopic(ctx, topicID)
 		if err != nil {
@@ -227,7 +227,7 @@ func (gp *GCPProvisioner) provisionFirestore(ctx context.Context, request *schem
 
 	for i := 0; i < request.Count; i++ {
 		collectionID := fmt.Sprintf("%s-%s-%d", collectionPrefix, uuid.New().String()[:8], i)
-		
+
 		// Create initial document to establish collection
 		doc := gp.firestoreClient.Collection(collectionID).Doc("_init")
 		_, err := doc.Set(ctx, map[string]interface{}{

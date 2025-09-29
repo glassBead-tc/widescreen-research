@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 	"github.com/glassBead-tc/widescreen-research/pkg/coordinator"
 	"github.com/glassBead-tc/widescreen-research/pkg/types"
+	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 // MCPServer wraps the coordinator with MCP protocol support

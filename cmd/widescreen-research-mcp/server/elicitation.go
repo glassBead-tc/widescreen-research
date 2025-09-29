@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
+	"github.com/google/uuid"
 )
 
 // ElicitationManager manages the elicitation process for qualifying users
@@ -215,16 +215,16 @@ func (em *ElicitationManager) GetResearchConfig(sessionID string) *schemas.Resea
 
 	// Build configuration from answers
 	config := &schemas.ResearchConfig{
-		SessionID:       sessionID,
-		Topic:           em.getStringAnswer(session, "research_topic", ""),
-		ResearcherCount: em.getIntAnswer(session, "researcher_count", 10),
-		ResearchDepth:   em.getStringAnswer(session, "research_depth", "standard"),
-		OutputFormat:    em.getStringAnswer(session, "output_format", "structured_json"),
-		TimeoutMinutes:  em.getIntAnswer(session, "timeout_minutes", 60),
-		PriorityLevel:   em.getStringAnswer(session, "priority_level", "normal"),
+		SessionID:         sessionID,
+		Topic:             em.getStringAnswer(session, "research_topic", ""),
+		ResearcherCount:   em.getIntAnswer(session, "researcher_count", 10),
+		ResearchDepth:     em.getStringAnswer(session, "research_depth", "standard"),
+		OutputFormat:      em.getStringAnswer(session, "output_format", "structured_json"),
+		TimeoutMinutes:    em.getIntAnswer(session, "timeout_minutes", 60),
+		PriorityLevel:     em.getStringAnswer(session, "priority_level", "normal"),
 		WorkflowTemplates: em.getStringAnswer(session, "workflow_templates", ""),
-		SpecificSources:  em.getStringAnswer(session, "specific_sources", ""),
-		CreatedAt:       session.StartTime,
+		SpecificSources:   em.getStringAnswer(session, "specific_sources", ""),
+		CreatedAt:         session.StartTime,
 	}
 
 	return config

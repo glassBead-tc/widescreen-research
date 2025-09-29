@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/glassBead-tc/widescreen-research/pkg/types"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 func (s *MCPServer) handlePlanCampaign(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -28,34 +28,50 @@ func (s *MCPServer) handlePlanCampaign(ctx context.Context, request mcp.CallTool
 
 func (s *MCPServer) handleLaunchFleet(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	runID, err := request.RequireString("run_id")
-	if err != nil { return mcp.NewToolResultError("run_id required"), nil }
+	if err != nil {
+		return mcp.NewToolResultError("run_id required"), nil
+	}
 	tw := int(request.GetFloat("target_workers", 10))
 	statusID, err := s.coordinator.LaunchFleet(ctx, runID, tw)
-	if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
 	return mcp.NewToolResultText(statusID), nil
 }
 
 func (s *MCPServer) handleFleetStatus(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	runID, err := request.RequireString("run_id")
-	if err != nil { return mcp.NewToolResultError("run_id required"), nil }
+	if err != nil {
+		return mcp.NewToolResultError("run_id required"), nil
+	}
 	status, err := s.coordinator.FleetStatus(ctx, runID)
-	if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
 	b, _ := json.Marshal(status)
 	return mcp.NewToolResultText(string(b)), nil
 }
 
 func (s *MCPServer) handleAbort(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	runID, err := request.RequireString("run_id")
-	if err != nil { return mcp.NewToolResultError("run_id required"), nil }
-	if err := s.coordinator.AbortRun(ctx, runID); err != nil { return mcp.NewToolResultError(err.Error()), nil }
+	if err != nil {
+		return mcp.NewToolResultError("run_id required"), nil
+	}
+	if err := s.coordinator.AbortRun(ctx, runID); err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
 	return mcp.NewToolResultText("aborted"), nil
 }
 
 func (s *MCPServer) handleExportGraph(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	space, err := request.RequireString("mem0_space")
-	if err != nil { return mcp.NewToolResultError("mem0_space required"), nil }
+	if err != nil {
+		return mcp.NewToolResultError("mem0_space required"), nil
+	}
 	format := request.GetString("format", "jsonl")
 	uri, err := s.coordinator.ExportGraph(ctx, space, format)
-	if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
 	return mcp.NewToolResultText(uri), nil
 }

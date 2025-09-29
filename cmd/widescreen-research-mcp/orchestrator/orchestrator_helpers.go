@@ -116,7 +116,7 @@ func (o *Orchestrator) monitorSession(ctx context.Context, session *ResearchSess
 func (o *Orchestrator) checkDroneHealth(ctx context.Context, drone *DroneInfo) error {
 	// Make HTTP health check request
 	healthURL := fmt.Sprintf("%s/health", drone.ServiceURL)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", healthURL, nil)
 	if err != nil {
 		return err
@@ -148,7 +148,7 @@ func (o *Orchestrator) sendInstructionsToDrone(ctx context.Context, drone *Drone
 
 	// Send via HTTP POST to drone
 	instructURL := fmt.Sprintf("%s/instructions", drone.ServiceURL)
-	
+
 	jsonData, err := json.Marshal(command)
 	if err != nil {
 		return err
@@ -242,7 +242,7 @@ func (o *Orchestrator) analyzeResults(ctx context.Context, results []schemas.Dro
 	// Calculate statistics
 	analysis.Statistics["total_data_points"] = analysis.Metrics.DataPointsCollected
 	analysis.Statistics["success_rate"] = float64(analysis.Metrics.DronesCompleted) / float64(analysis.Metrics.DronesProvisioned)
-	
+
 	// Calculate average confidence
 	totalConfidence := 0.0
 	for _, pattern := range patterns {

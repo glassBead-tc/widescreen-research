@@ -60,7 +60,7 @@ func TestBreakDownResearchTopicMock(t *testing.T) {
 	// This test ensures our mock topic breakdown works as expected.
 	agent := NewClaudeAgent()
 	config := &schemas.ResearchConfig{
-		Topic: "Top 3 AI Companies",
+		Topic:           "Top 3 AI Companies",
 		ResearcherCount: 3,
 	}
 
