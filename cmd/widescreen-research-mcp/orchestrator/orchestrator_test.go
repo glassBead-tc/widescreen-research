@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // MockGCP is a mock implementation of the GCP clients.

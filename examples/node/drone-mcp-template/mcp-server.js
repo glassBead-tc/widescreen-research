@@ -16,7 +16,7 @@ import { createResearchHandlers } from './drones/research.js';
 export async function initMcpServer(droneType, transport = 'stdio') {
   try {
     logger.info(`Creating MCP server for drone type: ${droneType}`);
-    
+
     const server = new McpServer({
       name: `drone-mcp-${droneType}`,
       version: '1.0.0'
@@ -25,7 +25,7 @@ export async function initMcpServer(droneType, transport = 'stdio') {
     logger.info('Getting handlers for drone type');
     const handlers = getHandlersForType(droneType);
     logger.info(`Handlers created: tools=${Object.keys(handlers.tools || {}).length}, resources=${Object.keys(handlers.resources || {}).length}, prompts=${Object.keys(handlers.prompts || {}).length}`);
-    
+
     // Register tools
     if (handlers.tools) {
       for (const [name, handler] of Object.entries(handlers.tools)) {
@@ -137,4 +137,4 @@ function createHttpMiddleware(server) {
       res.status(500).json({ error: 'Internal server error' });
     }
   };
-} 
+}

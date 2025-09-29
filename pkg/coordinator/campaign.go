@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/spawn-mcp/coordinator/pkg/types"
+	"github.com/glassBead-tc/widescreen-research/pkg/types"
 )
 
 // PlanCampaign validates a CampaignSpec, assigns a run ID, stores it, and returns a plan.

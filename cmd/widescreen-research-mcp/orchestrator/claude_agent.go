@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // ClaudeAgent manages AI-powered orchestration using Claude

@@ -7,7 +7,7 @@ export function createProcessorHandlers() {
       transform_data: async (request) => {
         const { data, transformType, options = {} } = request.params;
         logger.info('Transforming data', { transformType });
-        
+
         try {
           // Mock transformation logic
           let result;
@@ -24,7 +24,7 @@ export function createProcessorHandlers() {
             default:
               result = data;
           }
-          
+
           return { result };
         } catch (error) {
           logger.error('Error transforming data', { error: error.message });
@@ -40,7 +40,7 @@ export function createProcessorHandlers() {
       validate_data: async (request) => {
         const { data, schema, options = {} } = request.params;
         logger.info('Validating data');
-        
+
         try {
           // Mock validation
           const result = {
@@ -48,7 +48,7 @@ export function createProcessorHandlers() {
             errors: [],
             warnings: []
           };
-          
+
           return { result };
         } catch (error) {
           logger.error('Error validating data', { error: error.message });
@@ -64,7 +64,7 @@ export function createProcessorHandlers() {
       aggregate: async (request) => {
         const { data, aggregationType, groupBy } = request.params;
         logger.info('Aggregating data', { aggregationType, groupBy });
-        
+
         try {
           // Mock aggregation
           const result = {
@@ -76,7 +76,7 @@ export function createProcessorHandlers() {
               avg: 0
             }
           };
-          
+
           return { result };
         } catch (error) {
           logger.error('Error aggregating data', { error: error.message });
@@ -93,4 +93,4 @@ export function createProcessorHandlers() {
     resources: {},
     prompts: {}
   };
-} 
+}

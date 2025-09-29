@@ -1,4 +1,4 @@
-module github.com/spawn-mcp/coordinator
+module github.com/glassBead-tc/widescreen-research
 
 go 1.23
 
@@ -8,9 +8,10 @@ require (
 	cloud.google.com/go/firestore v1.15.0
 	cloud.google.com/go/pubsub v1.38.0
 	cloud.google.com/go/run v1.3.6
+	github.com/google/uuid v1.6.0
 	github.com/mark3labs/mcp-go v0.29.0
 	google.golang.org/api v0.177.0
-	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda
+	google.golang.org/protobuf v1.34.0
 )
 
 require (
@@ -26,7 +27,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.3 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
@@ -44,8 +44,8 @@ require (
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
+	google.golang.org/genproto v0.0.0-20240401170217-c3f982113cda // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240429193739-8cf5692501f6 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240429193739-8cf5692501f6 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
 )

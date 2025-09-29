@@ -14,7 +14,7 @@ import (
 	"cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/google/uuid"
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 

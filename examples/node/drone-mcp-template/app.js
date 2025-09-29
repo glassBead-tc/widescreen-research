@@ -62,7 +62,7 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   logger.error('Express error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
@@ -74,11 +74,11 @@ function getCapabilities() {
     generic: ['echo', 'ping', 'info'],
     scraper: ['fetch_url', 'extract_data', 'parse_html'],
     processor: ['transform_data', 'validate_data', 'aggregate'],
-    research: ['web_search', 'research_papers', 'company_research', 'crawl_url', 
+    research: ['web_search', 'research_papers', 'company_research', 'crawl_url',
                'find_competitors', 'linkedin_search', 'wikipedia_search', 'github_search'],
     analyzer: ['analyze_text', 'sentiment_analysis', 'extract_entities']
   };
   return capabilities[droneType] || capabilities.generic;
 }
 
-export default app; 
+export default app;

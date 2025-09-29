@@ -16,7 +16,7 @@ cd widescreen-research
 
 ## Quickstart (Go)
 ```bash
-go version  # require 1.22+
+go version  # require 1.23+
 go mod download
 
 # terminal 1

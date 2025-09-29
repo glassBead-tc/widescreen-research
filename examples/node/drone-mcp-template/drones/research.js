@@ -42,7 +42,7 @@ export function createResearchHandlers() {
       web_search: async (request) => {
         try {
           const { query, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query,
             type: 'auto',
@@ -69,7 +69,7 @@ export function createResearchHandlers() {
       research_papers: async (request) => {
         try {
           const { query, maxCharacters = 3000, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query: `${query} academic research paper`,
             type: 'auto',
@@ -96,7 +96,7 @@ export function createResearchHandlers() {
       company_research: async (request) => {
         try {
           const { query, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query: `${query} company information`,
             type: 'auto',
@@ -123,7 +123,7 @@ export function createResearchHandlers() {
       crawl_url: async (request) => {
         try {
           const { url } = request.params;
-          
+
           const result = await callExaAPI('/contents', {
             ids: [url],
             text: {
@@ -145,12 +145,12 @@ export function createResearchHandlers() {
       find_competitors: async (request) => {
         try {
           const { query, excludeDomain, numResults = 10 } = request.params;
-          
+
           let searchQuery = `${query} competitors similar companies`;
           if (excludeDomain) {
             searchQuery += ` -site:${excludeDomain}`;
           }
-          
+
           const result = await callExaAPI('/search', {
             query: searchQuery,
             type: 'auto',
@@ -176,7 +176,7 @@ export function createResearchHandlers() {
       linkedin_search: async (request) => {
         try {
           const { query, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query: `${query} site:linkedin.com`,
             type: 'auto',
@@ -202,7 +202,7 @@ export function createResearchHandlers() {
       wikipedia_search: async (request) => {
         try {
           const { query, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query: `${query} site:wikipedia.org`,
             type: 'auto',
@@ -228,7 +228,7 @@ export function createResearchHandlers() {
       github_search: async (request) => {
         try {
           const { query, numResults = 5 } = request.params;
-          
+
           const result = await callExaAPI('/search', {
             query: `${query} site:github.com`,
             type: 'auto',
@@ -265,7 +265,7 @@ export function createResearchHandlers() {
               apiEndpoint: EXA_API_BASE_URL,
               availableTools: [
                 'web_search',
-                'research_papers', 
+                'research_papers',
                 'company_research',
                 'crawl_url',
                 'find_competitors',
@@ -304,4 +304,4 @@ Each tool leverages Exa's powerful search and content extraction capabilities.`
       }
     }
   };
-} 
+}

@@ -7,9 +7,9 @@ import (
 	"log"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/operations"
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/orchestrator"
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/operations"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/orchestrator"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // WidescreenResearchServer is the main MCP server that provides widescreen research capabilities

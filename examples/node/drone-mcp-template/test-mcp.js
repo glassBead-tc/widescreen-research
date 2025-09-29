@@ -24,10 +24,10 @@ async function testMcp() {
 
     console.log('Creating transport...');
     const transport = new StdioServerTransport();
-    
+
     console.log('Connecting...');
     await server.connect(transport);
-    
+
     console.log('MCP server started successfully!');
   } catch (error) {
     console.error('Error:', error.message);
@@ -35,4 +35,4 @@ async function testMcp() {
   }
 }
 
-testMcp(); 
+testMcp();

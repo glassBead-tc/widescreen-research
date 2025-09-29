@@ -24,4 +24,4 @@ ENV MCP_TRANSPORT=stdio
 ENV NODE_ENV=production
 
 # Run the web service on container startup.
-ENTRYPOINT ["node", "index.js"] 
+ENTRYPOINT ["node", "index.js"]

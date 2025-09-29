@@ -5,10 +5,17 @@ build:
 	go build ./cmd/coordinator ./cmd/drone
 
 run-coordinator:
-	LOG_LEVEL=debug go run ./cmd/coordinator
+	LOG_LEVEL=debug \
+	GOOGLE_CLOUD_PROJECT=your-project-id \
+	GOOGLE_CLOUD_REGION=us-central1 \
+	go run ./cmd/coordinator
 
 run-drone:
-	LOG_LEVEL=debug DRONE_TYPE=research EXA_API_KEY=dummy go run ./cmd/drone
+	LOG_LEVEL=debug DRONE_TYPE=research EXA_API_KEY=dummy \
+	DRONE_ID=local-drone-1 \
+	GOOGLE_CLOUD_PROJECT=your-project-id \
+	PUBSUB_TOPIC=drone-results \
+	go run ./cmd/drone
 
 test:
 	go test -race -cover ./...

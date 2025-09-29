@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/spawn-mcp/coordinator/pkg/coordinator"
-	"github.com/spawn-mcp/coordinator/pkg/gcp"
+	"github.com/glassBead-tc/widescreen-research/pkg/coordinator"
+	"github.com/glassBead-tc/widescreen-research/pkg/gcp"
 )
 
 func main() {

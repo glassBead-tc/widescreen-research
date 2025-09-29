@@ -64,7 +64,7 @@ export function createGenericHandlers() {
             description: 'Get help on using this drone',
             arguments: [],
             content: `This is a ${process.env.DRONE_TYPE || 'generic'} drone MCP server.
-            
+
 Available tools:
 - echo: Echo back a message
 - ping: Check if the drone is responsive
@@ -77,4 +77,4 @@ Available resources:
       }
     }
   };
-} 
+}

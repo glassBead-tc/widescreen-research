@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/server"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/server"
 )
 
 func main() {

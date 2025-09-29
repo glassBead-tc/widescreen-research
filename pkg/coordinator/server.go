@@ -2,13 +2,16 @@ package coordinator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/spawn-mcp/coordinator/pkg/gcp"
-	"github.com/spawn-mcp/coordinator/pkg/types"
+	"github.com/glassBead-tc/widescreen-research/pkg/gcp"
+	"github.com/glassBead-tc/widescreen-research/pkg/types"
 )
 
 // Server represents the coordinator MCP server
@@ -172,6 +175,10 @@ func (s *Server) SpawnDrone(ctx context.Context, config types.DroneConfig) (stri
 	env["DRONE_TYPE"] = string(config.Type)
 	env["COORDINATOR_URL"] = "https://coordinator-service-url" // TODO: Make this configurable
 
+	// Add required GCP environment variables
+	env["GOOGLE_CLOUD_PROJECT"] = s.gcpClient.ProjectID
+	env["PUBSUB_TOPIC"] = "drone-results" // TODO: Make this configurable
+
 	// Add any custom environment variables from config
 	for key, value := range config.Environment {
 		env[key] = value
@@ -190,12 +197,8 @@ func (s *Server) SpawnDrone(ctx context.Context, config types.DroneConfig) (stri
 		return "", fmt.Errorf("failed to create Cloud Run service for drone %s: %w", droneID, err)
 	}
 
-	// Wait for the service to be ready
-	err = s.gcpClient.WaitForServiceReady(ctx, serviceName, 5*time.Minute)
-	if err != nil {
-		log.Printf("Warning: Service %s may not be fully ready: %v", serviceName, err)
-		// Don't fail completely, just log the warning
-	}
+	// Service is ready after LRO Wait() completes
+	log.Printf("Cloud Run service %s is ready", serviceName)
 
 	// Get the service URL
 	serviceURL, err := s.gcpClient.GetServiceURL(ctx, serviceName)
@@ -561,9 +564,109 @@ func (s *Server) TerminateDrone(ctx context.Context, droneID string) error {
 	return nil
 }
 
-// Serve starts the coordinator server
+// Serve starts the coordinator server with HTTP endpoints
 func (s *Server) Serve() error {
 	log.Println("Starting Coordinator Server...")
-	// For now, just keep running
-	select {}
+
+	// Start health check routine
+	ctx := context.Background()
+	s.StartHealthCheckRoutine(ctx)
+
+	// Set up HTTP routes
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.handleRoot)
+	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/drones", s.handleDrones)
+	mux.HandleFunc("/tasks", s.handleTasks)
+
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	addr := ":" + port
+	log.Printf("Coordinator HTTP server listening on %s", addr)
+
+	// Start HTTP server
+	return http.ListenAndServe(addr, mux)
+}
+
+// handleRoot provides basic information about the coordinator
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	info := map[string]interface{}{
+		"service": "spawn-mcp-coordinator",
+		"status":  "running",
+		"version": "1.0.0",
+		"endpoints": []string{
+			"/",
+			"/health",
+			"/drones",
+			"/tasks",
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(info)
+}
+
+// handleHealth provides health check endpoint
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+}
+
+// handleDrones provides information about active drones
+func (s *Server) handleDrones(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	drones := s.ListActiveDrones()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"drones": drones,
+		"count":  len(drones),
+	})
+}
+
+// handleTasks provides task management endpoints
+func (s *Server) handleTasks(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		// Return task results or status
+		taskID := r.URL.Query().Get("id")
+		if taskID != "" {
+			results, err := s.GetTaskResults(taskID)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"task_id": taskID,
+				"results": results,
+			})
+		} else {
+			// Return general task info
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Task management endpoint. Use ?id=<task_id> to get specific task results.",
+			})
+		}
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }

@@ -8,14 +8,14 @@ export function createScraperHandlers() {
       fetch_url: async (request) => {
         const { url, options = {} } = request.params;
         logger.info('Fetching URL', { url });
-        
+
         try {
           const response = await axios.get(url, {
             headers: options.headers || {},
             timeout: options.timeout || 30000,
             maxRedirects: 5
           });
-          
+
           return {
             result: {
               url,
@@ -39,7 +39,7 @@ export function createScraperHandlers() {
       extract_data: async (request) => {
         const { html, selector, extractType = 'text' } = request.params;
         logger.info('Extracting data', { selector, extractType });
-        
+
         // This is a simplified example - in production you'd use cheerio or similar
         try {
           // Mock extraction logic
@@ -49,7 +49,7 @@ export function createScraperHandlers() {
             data: `Extracted ${extractType} from ${selector}`,
             count: 1
           };
-          
+
           return { result };
         } catch (error) {
           logger.error('Error extracting data', { error: error.message });
@@ -65,7 +65,7 @@ export function createScraperHandlers() {
       parse_html: async (request) => {
         const { html, parseOptions = {} } = request.params;
         logger.info('Parsing HTML');
-        
+
         try {
           // Mock HTML parsing
           const result = {
@@ -74,7 +74,7 @@ export function createScraperHandlers() {
             images: [],
             text: html.substring(0, 100) + '...'
           };
-          
+
           return { result };
         } catch (error) {
           logger.error('Error parsing HTML', { error: error.message });
@@ -116,7 +116,7 @@ export function createScraperHandlers() {
               { name: 'selectors', description: 'CSS selectors to extract', required: false }
             ],
             content: `To scrape a website:
-            
+
 1. Use fetch_url to get the HTML content
 2. Use extract_data to extract specific elements
 3. Use parse_html for general parsing
@@ -130,4 +130,4 @@ Example workflow:
       }
     }
   };
-} 
+}

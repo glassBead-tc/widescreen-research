@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/spawn-mcp/coordinator/pkg/drone"
+	"github.com/glassBead-tc/widescreen-research/pkg/drone"
 )
 
 func main() {

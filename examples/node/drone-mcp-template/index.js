@@ -19,7 +19,7 @@ const main = async () => {
         logger.warn('Could not fetch Project Id for tracing.', err);
       }
     }
-    
+
     // Initialize request-based logger with project Id
     initLogCorrelation(project);
 
@@ -52,7 +52,7 @@ const main = async () => {
     const server = createServer(app);
     server.listen(PORT, () => {
       logger.info(`HTTP server listening on port ${PORT}`);
-      
+
       // Report to coordinator if URL is provided
       if (COORDINATOR_URL) {
         reportToCoordinator(COORDINATOR_URL, DRONE_TYPE, PORT);
@@ -94,7 +94,7 @@ function getDroneCapabilities(droneType) {
     generic: ['echo', 'ping'],
     scraper: ['fetch_url', 'extract_data'],
     processor: ['transform_data', 'validate_data'],
-    research: ['web_search', 'research_papers', 'company_research', 'crawl_url', 
+    research: ['web_search', 'research_papers', 'company_research', 'crawl_url',
                'find_competitors', 'linkedin_search', 'wikipedia_search', 'github_search'],
     analyzer: ['analyze_text', 'sentiment_analysis']
   };
@@ -120,4 +120,4 @@ process.on('uncaughtException', (err) => {
 main().catch(err => {
   logger.error('Failed to start server:', err);
   process.exit(1);
-}); 
+});

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/spawn-mcp/coordinator/pkg/types"
+	"github.com/glassBead-tc/widescreen-research/pkg/types"
 )
 
 func (s *MCPServer) handlePlanCampaign(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {

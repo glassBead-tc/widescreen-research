@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // DataAnalyzer performs analysis on research findings
@@ -577,7 +577,7 @@ func (da *DataAnalyzer) identifyTimePattern(results []schemas.DroneResult) *sche
 }
 
 func (da *DataAnalyzer) identifyPerformancePattern(results []schemas.DroneResult) *schemas.Pattern {
-	avg, min, max := da.analyzeProcessingTimes(results)
+	avg, _, max := da.analyzeProcessingTimes(results)
 	
 	if max > avg*3 { // Some drones took much longer
 		return &schemas.Pattern{
