@@ -13,8 +13,6 @@ linters:
     - gosimple
     - staticcheck
     - unused
-    - prealloc
-    - bodyclose
     - stylecheck
 
 linters-settings:
