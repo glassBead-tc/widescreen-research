@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package mcp
 
 import (
@@ -5,10 +8,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/glassBead-tc/widescreen-research/pkg/coordinator"
+	"github.com/glassBead-tc/widescreen-research/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/spawn-mcp/coordinator/pkg/coordinator"
-	"github.com/spawn-mcp/coordinator/pkg/types"
 )
 
 // MCPServer wraps the coordinator with MCP protocol support

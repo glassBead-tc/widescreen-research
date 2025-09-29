@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package types
 
 import "time"
@@ -26,9 +29,9 @@ type QualityBar struct {
 
 // CampaignPlan expands a CampaignSpec into an executable plan.
 type CampaignPlan struct {
-	RunID        string       `json:"run_id"`
-	Spec         CampaignSpec `json:"spec"`
-	TasksPlanned int          `json:"tasks_planned"`
-	EstimatedETA string       `json:"estimated_eta"`
-	EstimatedCostUSD float64  `json:"estimated_cost_usd"`
+	RunID            string       `json:"run_id"`
+	Spec             CampaignSpec `json:"spec"`
+	TasksPlanned     int          `json:"tasks_planned"`
+	EstimatedETA     string       `json:"estimated_eta"`
+	EstimatedCostUSD float64      `json:"estimated_cost_usd"`
 }

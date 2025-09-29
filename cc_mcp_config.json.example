@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "firecrawl-mcp": {
+      "command": "node",
+      "args": ["/path/to/firecrawl-mcp-server/dist/index.js"],
+      "env": {
+        "FIRECRAWL_API_KEY": "your-firecrawl-api-key"
+      },
+      "alwaysAllow": [
+        "firecrawl_scrape",
+        "firecrawl_crawl",
+        "firecrawl_check_crawl_status",
+        "firecrawl_map"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "alwaysAllow": ["resolve-library-id"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "exa",
+        "--key",
+        "your-exa-api-key"
+      ]
+    },
+    "widescreen-research": {
+      "command": "go",
+      "args": ["run", "./cmd/widescreen-research-mcp"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "your-gcp-project-id",
+        "GCP_REGION": "us-central1",
+        "EXA_API_KEY": "your-exa-api-key",
+        "LOG_LEVEL": "debug",
+        "PORT": "8080",
+        "COORDINATOR_BASE_URL": "http://localhost:9020",
+        "DRONE_TYPE": "research"
+      },
+      "alwaysAllow": ["widescreen-research"]
+    }
+  }
+}

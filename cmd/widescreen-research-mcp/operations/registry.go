@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package operations
 
 import (
@@ -47,7 +50,7 @@ func (r *OperationRegistry) GetOperation(name string) *Operation {
 func (r *OperationRegistry) ListOperations() map[string]*Operation {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	ops := make(map[string]*Operation)
 	for k, v := range r.operations {
 		ops[k] = v
@@ -61,6 +64,6 @@ func (r *OperationRegistry) Execute(ctx context.Context, name string, params map
 	if op == nil {
 		return nil, fmt.Errorf("operation not found: %s", name)
 	}
-	
+
 	return op.Handler(ctx, params)
 }

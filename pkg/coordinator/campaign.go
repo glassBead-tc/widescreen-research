@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package coordinator
 
 import (
@@ -5,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/glassBead-tc/widescreen-research/pkg/types"
 	"github.com/google/uuid"
-	"github.com/spawn-mcp/coordinator/pkg/types"
 )
 
 // PlanCampaign validates a CampaignSpec, assigns a run ID, stores it, and returns a plan.
@@ -65,9 +68,9 @@ func (s *Server) LaunchFleet(ctx context.Context, runID string, targetWorkers in
 	}
 	statusID := fmt.Sprintf("status-%s", runID)
 	_ = s.gcpClient.StoreDocument(ctx, "campaign_status", runID, map[string]any{
-		"run_id": runID,
-		"workers": targetWorkers,
-		"state": "launching",
+		"run_id":     runID,
+		"workers":    targetWorkers,
+		"state":      "launching",
 		"updated_at": time.Now(),
 	})
 	return statusID, nil
@@ -76,10 +79,10 @@ func (s *Server) LaunchFleet(ctx context.Context, runID string, targetWorkers in
 // FleetStatus returns a minimal status payload.
 func (s *Server) FleetStatus(ctx context.Context, runID string) (map[string]any, error) {
 	return map[string]any{
-		"run_id": runID,
+		"run_id":        runID,
 		"active_drones": len(s.ListActiveDrones()),
-		"state": "running",
-		"updated_at": time.Now(),
+		"state":         "running",
+		"updated_at":    time.Now(),
 	}, nil
 }
 
@@ -87,8 +90,8 @@ func (s *Server) FleetStatus(ctx context.Context, runID string) (map[string]any,
 func (s *Server) AbortRun(ctx context.Context, runID string) error {
 	// Placeholder: no-op beyond status marker
 	return s.gcpClient.StoreDocument(ctx, "campaign_status", runID, map[string]any{
-		"run_id": runID,
-		"state": "aborted",
+		"run_id":     runID,
+		"state":      "aborted",
 		"updated_at": time.Now(),
 	})
 }

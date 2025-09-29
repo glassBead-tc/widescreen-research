@@ -311,36 +311,3 @@ func (c *Client) SubscribeToTopic(ctx context.Context, subscriptionName string, 
 
 	return nil
 }
-
-// WaitForServiceReady waits for a Cloud Run service to be ready
-func (c *Client) WaitForServiceReady(ctx context.Context, serviceName string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for service to be ready")
-		case <-ticker.C:
-			req := &runpb.GetServiceRequest{
-				Name: fmt.Sprintf("projects/%s/locations/%s/services/%s", c.ProjectID, c.Region, serviceName),
-			}
-
-			service, err := c.RunClient.GetService(ctx, req)
-			if err != nil {
-				log.Printf("Error checking service status: %v", err)
-				continue
-			}
-
-			// Check if service is ready
-			for _, condition := range service.Conditions {
-				if condition.Type == "Ready" && condition.State == runpb.Condition_CONDITION_SUCCEEDED {
-					return nil
-				}
-			}
-		}
-	}
-}

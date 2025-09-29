@@ -1,0 +1,12 @@
+{
+  "name": "widescreen-research-test",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Test harness for widescreen-research MCP server",
+  "scripts": {
+    "test:mcp": "node test-mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1"
+  }
+}

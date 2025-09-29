@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package orchestrator
 
 import (
@@ -8,17 +11,17 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // ResearchQueue manages the queue for collecting research results
 type ResearchQueue struct {
-	sessionID     string
-	subscription  *pubsub.Subscription
-	results       []schemas.DroneResult
-	mu            sync.Mutex
-	resultChan    chan schemas.DroneResult
-	errorChan     chan error
+	sessionID    string
+	subscription *pubsub.Subscription
+	results      []schemas.DroneResult
+	mu           sync.Mutex
+	resultChan   chan schemas.DroneResult
+	errorChan    chan error
 }
 
 // NewResearchQueue creates a new research queue

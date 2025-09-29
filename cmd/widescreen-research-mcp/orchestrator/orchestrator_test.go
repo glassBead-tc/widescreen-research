@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package orchestrator
 
 import (
@@ -5,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/schemas"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // MockGCP is a mock implementation of the GCP clients.
@@ -60,7 +63,7 @@ func TestBreakDownResearchTopicMock(t *testing.T) {
 	// This test ensures our mock topic breakdown works as expected.
 	agent := NewClaudeAgent()
 	config := &schemas.ResearchConfig{
-		Topic: "Top 3 AI Companies",
+		Topic:           "Top 3 AI Companies",
 		ResearcherCount: 3,
 	}
 

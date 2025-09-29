@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit-lint.sh",
+            "description": "Run linter on edited files"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-edit-test.sh",
+            "description": "Run tests for edited code"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-write-validate.sh",
+            "description": "Validate newly created files"
+          }
+        ]
+      }
+    ]
+  }
+}

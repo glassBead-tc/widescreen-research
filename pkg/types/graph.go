@@ -1,16 +1,19 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package types
 
 // EntityType enumerates core entity types for founder research.
 type EntityType string
 
 const (
-	EntityPerson     EntityType = "Person"
-	EntityCompany    EntityType = "Company"
-	EntityInvestor   EntityType = "Investor"
-	EntityYCBatch    EntityType = "YC_Batch"
-	EntitySchool     EntityType = "School"
-	EntityEmployer   EntityType = "PastEmployer"
-	EntityHandle     EntityType = "Handle"
+	EntityPerson   EntityType = "Person"
+	EntityCompany  EntityType = "Company"
+	EntityInvestor EntityType = "Investor"
+	EntityYCBatch  EntityType = "YC_Batch"
+	EntitySchool   EntityType = "School"
+	EntityEmployer EntityType = "PastEmployer"
+	EntityHandle   EntityType = "Handle"
 )
 
 // EdgeType enumerates relation types captured in mem0 graph.
@@ -31,19 +34,19 @@ const (
 
 // Entity represents a node to be persisted in mem0.
 type Entity struct {
-	ID   string     `json:"id"`
-	Type EntityType `json:"type"`
-	Name string     `json:"name"`
+	ID    string         `json:"id"`
+	Type  EntityType     `json:"type"`
+	Name  string         `json:"name"`
 	Props map[string]any `json:"props,omitempty"`
 }
 
 // Triple represents a graph edge (subject-predicate-object).
 type Triple struct {
-	SubjectID string   `json:"subject_id"`
-	Predicate EdgeType `json:"predicate"`
-	ObjectID  string   `json:"object_id"`
-	Citations []string `json:"citations,omitempty"`
-	Confidence float64 `json:"confidence,omitempty"`
+	SubjectID  string   `json:"subject_id"`
+	Predicate  EdgeType `json:"predicate"`
+	ObjectID   string   `json:"object_id"`
+	Citations  []string `json:"citations,omitempty"`
+	Confidence float64  `json:"confidence,omitempty"`
 }
 
 // MemoryRecord captures narrative plus structured graph for a subject.

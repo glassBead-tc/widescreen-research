@@ -1,0 +1,99 @@
+# .pre-commit-config.yaml
+repos:
+  # Go hooks
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        exclude: examples/node/.*
+      - id: go-vet
+        exclude: examples/node/.*
+      - id: go-imports
+        exclude: examples/node/.*
+      - id: go-cyclo
+        args: [-over=15]
+        exclude: examples/node/.*
+      - id: go-mod-tidy
+        exclude: examples/node/.*
+      - id: go-unit-tests
+        exclude: examples/node/.*
+      - id: golangci-lint
+        exclude: examples/node/.*
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: '(?x)(.*\.lock$|examples/node/.*/node_modules/.*|.*\.min\.(js|css)$|.*\.bundle\.(js|css)$)'
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: examples/node/.*/node_modules/.*
+      - id: end-of-file-fixer
+        exclude: examples/node/.*/node_modules/.*
+      - id: check-yaml
+        args: ['--unsafe']
+        exclude: examples/node/.*
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+        exclude: examples/node/.*
+      - id: check-case-conflict
+        exclude: examples/node/.*
+      - id: check-merge-conflict
+        exclude: examples/node/.*
+      - id: check-json
+        exclude: examples/node/.*
+      - id: check-toml
+        exclude: examples/node/.*
+      - id: check-xml
+        exclude: examples/node/.*
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+        exclude: examples/node/.*
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # Docker
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+
+  # Markdown
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.45.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix']
+
+  # YAML
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.37.1
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint.yaml]
+
+  # Commit message linting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.9.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # License headers
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: insert-license
+        files: \.go$
+        args:
+          - --license-filepath
+          - .license-header.txt
+          - --comment-style
+          - //

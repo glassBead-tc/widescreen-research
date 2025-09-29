@@ -1,0 +1,50 @@
+name: ci-node-examples
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  node-examples:
+    if: ${{ hashFiles('examples/node/**/package.json') != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - examples/node/exa-mcp-server
+          - examples/node/spawn-mcp
+          - examples/node/spawn-mcp-server
+          - examples/node/drone-mcp-template
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - name: Install
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+      - name: Lint (if present)
+        working-directory: ${{ matrix.project }}
+        run: |
+          if [ -f package.json ] && jq -e '.scripts.lint' package.json >/dev/null; then
+            npm run lint
+          else
+            echo "No lint script; skipping"
+          fi
+      - name: Test/Build (best-effort)
+        working-directory: ${{ matrix.project }}
+        run: |
+          if jq -e '.scripts.test' package.json >/dev/null; then
+            npm test
+          elif jq -e '.scripts.build' package.json >/dev/null; then
+            npm run build
+          else
+            echo "No test/build script; skipping"
+          fi

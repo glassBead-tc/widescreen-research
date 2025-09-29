@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -8,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/spawn-mcp/coordinator/cmd/widescreen-research-mcp/server"
+	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/server"
 )
 
 func main() {
@@ -19,16 +22,16 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Create and start the MCP server
-	srv, err := server.NewWidescreenResearchServer()
+	// Create and start the MCP server (Official SDK version)
+	srv, err := server.NewWidescreenResearchServerOfficial()
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	// Start the server
+	// Start the server in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		if err := srv.Start(ctx); err != nil {
+		if err := srv.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
