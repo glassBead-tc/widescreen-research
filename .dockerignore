@@ -1,0 +1,64 @@
+# Git
+.git
+.github
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Tests and temporary files
+**/*.test
+**/*_test.go
+.coverage
+coverage.out
+
+# Node.js (for examples only)
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Examples directory (not needed in production image)
+examples
+
+# Documentation
+docs
+*.md
+!README.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts and binaries
+bin/
+dist/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+
+# Development tools
+.pre-commit-config.yaml
+.golangci.yml
+.yamllint.yaml
+.markdownlint.yaml
+.editorconfig
+.gitignore
