@@ -1,5 +1,7 @@
 # widescreen-research
 
+[![Go CI](https://github.com/glassBead-tc/widescreen-research/actions/workflows/ci-go.yaml/badge.svg)](https://github.com/glassBead-tc/widescreen-research/actions/workflows/ci-go.yaml)
+
 Bidirectional MCP server orchestrating an army of research drones on Cloud Run in GCP.
 
 ## Repo status
