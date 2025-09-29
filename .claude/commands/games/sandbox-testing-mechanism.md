@@ -212,6 +212,7 @@ Context Engineering Tips for $CODE_SOURCE
 /sandbox-testing-game "https://github.com/example/user-lib.git" "" "" "run the sample program in README" 600000
 
 Anti-Patterns Prevented
+
  1. Unverified Code - Forces building and testing within a fresh sandbox before claiming success.
  2. No Example - Encourages creation of a plausible application to exercise the code.
  3. Missing Tests - Runs tests explicitly; flags when none are provided.

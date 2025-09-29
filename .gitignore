@@ -5,6 +5,12 @@
 *.env.production
 drone-mcp-template/.env
 
+# MCP and local config files (may contain secrets)
+cc_mcp_config.json
+environment.json
+llms.json
+tests.json
+
 # Node.js
 node_modules/
 npm-debug.log*
@@ -55,3 +61,8 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Cloned/external projects (separate git repos)
+mcp-agent-ts/
+mcp-ui/
+pkg/mcpui/

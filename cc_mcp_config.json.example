@@ -2,9 +2,9 @@
   "mcpServers": {
     "firecrawl-mcp": {
       "command": "node",
-      "args": ["/Users/b.c.nims/glassBead-local-mcp/retrieval-servers/firecrawl-mcp-server/dist/index.js"],
+      "args": ["/path/to/firecrawl-mcp-server/dist/index.js"],
       "env": {
-        "FIRECRAWL_API_KEY": "fc-dc828ca1c1af4897adcb3f3c42ff01d9"
+        "FIRECRAWL_API_KEY": "your-firecrawl-api-key"
       },
       "alwaysAllow": [
         "firecrawl_scrape",
@@ -26,16 +26,16 @@
         "run",
         "exa",
         "--key",
-        "fe556de3-a658-4330-a3e7-563cf6a91972"
+        "your-exa-api-key"
       ]
     },
     "widescreen-research": {
       "command": "go",
       "args": ["run", "./cmd/widescreen-research-mcp"],
       "env": {
-        "GOOGLE_CLOUD_PROJECT": "widescreen-researcher",
+        "GOOGLE_CLOUD_PROJECT": "your-gcp-project-id",
         "GCP_REGION": "us-central1",
-        "EXA_API_KEY": "04d84ad6-726b-450d-9274-4050b08ab052",
+        "EXA_API_KEY": "your-exa-api-key",
         "LOG_LEVEL": "debug",
         "PORT": "8080",
         "COORDINATOR_BASE_URL": "http://localhost:9020",
