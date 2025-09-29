@@ -7,7 +7,7 @@ toolchain go1.24.7
 require (
 	cloud.google.com/go/firestore v1.18.0
 	cloud.google.com/go/pubsub v1.49.0
-	cloud.google.com/go/run v1.10.0
+	cloud.google.com/go/run v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/mark3labs/mcp-go v0.41.0
 	github.com/modelcontextprotocol/go-sdk v0.8.0
@@ -51,7 +51,7 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250804133106-a7a43d27e69b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
 	google.golang.org/grpc v1.75.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
