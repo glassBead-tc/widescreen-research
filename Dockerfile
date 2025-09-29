@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.22 as build
+FROM golang:1.23 as build
 
 WORKDIR /app
 
