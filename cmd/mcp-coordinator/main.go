@@ -33,8 +33,8 @@ func main() {
 	// Create coordinator server
 	coordinatorServer := coordinator.NewServer(gcpClient)
 
-	// Create MCP server that wraps the coordinator
-	mcpServer := mcp.NewMCPServer(coordinatorServer)
+	// Create MCP server that wraps the coordinator (Official SDK)
+	mcpServer := mcp.NewMCPServerOfficial(coordinatorServer)
 
 	// Set up graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -42,8 +42,8 @@ func main() {
 
 	// Start MCP server in a goroutine
 	go func() {
-		log.Println("Starting MCP server on stdio...")
-		if err := mcpServer.Start(ctx); err != nil {
+		log.Println("Starting MCP coordinator server on stdio...")
+		if err := mcpServer.Run(ctx); err != nil {
 			log.Printf("MCP server error: %v", err)
 			cancel()
 		}
