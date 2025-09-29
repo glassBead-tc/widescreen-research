@@ -1,8 +1,22 @@
-.PHONY: build run-coordinator run-drone test docker install-hooks lint lint-go lint-docker security-scan clean-hooks pre-push
+.PHONY: build run-coordinator run-drone test docker install-hooks lint lint-go lint-docker security-scan clean-hooks pre-push mcp-sdk-migrate
 
 # Build targets
 build:
 	go build ./cmd/coordinator ./cmd/drone
+
+# MCP Utilities
+mcp-sdk-migrate:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make mcp-sdk-migrate FILE=path/to/file.go [DRY_RUN=1]"; \
+		echo ""; \
+		echo "Migrates Go MCP server code from mark3labs to official SDK"; \
+		echo ""; \
+		echo "Examples:"; \
+		echo "  make mcp-sdk-migrate FILE=pkg/mcp/server.go"; \
+		echo "  make mcp-sdk-migrate FILE=pkg/mcp/server.go DRY_RUN=1"; \
+		exit 1; \
+	fi
+	@go run ./cmd/mcp-sdk-migrate -file $(FILE) $(if $(DRY_RUN),-dry-run,)
 
 run-coordinator:
 	LOG_LEVEL=debug \
@@ -55,15 +69,17 @@ pre-push: lint test security-scan
 # Help
 help:
 	@echo "Available targets:"
-	@echo "  build          - Build Go binaries"
-	@echo "  run-coordinator - Run coordinator locally"
-	@echo "  run-drone      - Run drone locally"
-	@echo "  test           - Run tests"
-	@echo "  docker         - Build Docker image"
-	@echo "  install-hooks  - Install Git hooks"
-	@echo "  lint           - Run all linters"
-	@echo "  lint-go        - Run Go linters"
-	@echo "  lint-docker    - Run Docker linters"
-	@echo "  security-scan  - Run security scans"
-	@echo "  pre-push       - Run all checks before pushing"
-	@echo "  clean-hooks    - Remove Git hooks"
+	@echo "  build               - Build Go binaries"
+	@echo "  run-coordinator     - Run coordinator locally"
+	@echo "  run-drone           - Run drone locally"
+	@echo "  test                - Run tests"
+	@echo "  docker              - Build Docker image"
+	@echo "  install-hooks       - Install Git hooks"
+	@echo "  lint                - Run all linters"
+	@echo "  lint-go             - Run Go linters"
+	@echo "  lint-docker         - Run Docker linters"
+	@echo "  security-scan       - Run security scans"
+	@echo "  pre-push            - Run all checks before pushing"
+	@echo "  clean-hooks         - Remove Git hooks"
+	@echo "  mcp-sdk-migrate     - Migrate MCP server from mark3labs to official SDK"
+	@echo "                        Usage: make mcp-sdk-migrate FILE=path/to/file.go"

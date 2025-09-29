@@ -1,11 +1,13 @@
 # MCPClient Specification
 
 ## Overview
+
 The MCPClient in the widescreen-research orchestrator needs to communicate with remote MCP servers (research drones) to coordinate distributed research tasks.
 
 ## Requirements
 
 ### Core Functionality
+
 1. **Connection Management**: Establish and maintain connections to multiple MCP servers (drones)
 2. **Tool Invocation**: Call tools on remote MCP servers with proper parameter passing
 3. **Resource Access**: Access resources from remote MCP servers if needed
@@ -13,6 +15,7 @@ The MCPClient in the widescreen-research orchestrator needs to communicate with 
 5. **Authentication**: Handle GCP service-to-service authentication for Cloud Run deployments
 
 ### Use Cases
+
 1. **Drone Coordination**: Send research tasks to provisioned drone MCP servers
 2. **Result Collection**: Gather results from completed drone tasks
 3. **Health Monitoring**: Check status and availability of drone servers
@@ -24,15 +27,18 @@ The MCPClient in the widescreen-research orchestrator needs to communicate with 
 ## Technical Design
 
 ### SDK Choice
+
 - Use the official `github.com/modelcontextprotocol/go-sdk`
 - NOT the unofficial `github.com/mark3labs/mcp-go`
 
 ### Transport Layer
+
 - **Primary**: HTTP transport for Cloud Run service-to-service communication
 - **Authentication**: GCP Identity Token for authenticated requests
 - **Fallback**: Consider stdio transport for local development/testing
 
 ### Interface Design
+
 ```go
 type MCPClient interface {
     // Initialize sets up the client
@@ -58,6 +64,7 @@ type MCPClient interface {
 ### Official SDK Implementation Patterns
 
 #### Client Creation and Connection
+
 ```go
 // Create MCP client with implementation info
 client := mcp.NewClient(&mcp.Implementation{
@@ -79,6 +86,7 @@ if err != nil {
 ```
 
 #### Tool Calling Pattern
+
 ```go
 // Call tool using session
 params := &mcp.CallToolParams{
@@ -95,6 +103,7 @@ if result.IsError {
 ```
 
 #### Session Management
+
 ```go
 // Store sessions by drone URL
 sessions := make(map[string]*mcp.ClientSession)
@@ -106,16 +115,19 @@ for _, session := range sessions {
 ```
 
 ### Connection Pool
+
 - Maintain a pool of connections to active drones
 - Implement connection reuse and cleanup
 - Handle connection failures gracefully
 
 ### Error Handling
+
 - Retry logic for transient failures
 - Circuit breaker pattern for failing drones
 - Proper error propagation with context
 
 ### Authentication Flow
+
 1. Generate GCP Identity Token for target service
 2. Include token in HTTP headers
 3. Handle token refresh automatically
@@ -123,30 +135,35 @@ for _, session := range sessions {
 ## Implementation Plan
 
 ### Phase 1: Basic MCP Client
+
 1. Replace current stub with official MCP Go SDK client
 2. Implement HTTP transport with GCP authentication
 3. Basic tool calling functionality
 4. Connection management and session handling
 
 ### Phase 2: Research Query Elicitation
+
 1. Implement elicitation support for query refinement
 2. Create structured schemas for research parameters
 3. Build query processing pipeline based on elicited responses
 4. Add adaptive follow-up question logic
 
 ### Phase 3: AI-Assisted Research Enhancement
+
 1. Implement sampling support for AI analysis
 2. Add research synthesis and content analysis capabilities
 3. Build query expansion and quality assessment features
 4. Create automated report generation using AI
 
 ### Phase 4: Shared Research Workspace
+
 1. Implement roots support for shared file access
 2. Create research workspace structure and templates
 3. Add collaborative file operations for drones
 4. Build research artifact archival and discovery
 
 ### Phase 5: Advanced Features
+
 1. Retry logic and circuit breakers
 2. Metrics and observability
 3. Performance optimizations
@@ -155,17 +172,21 @@ for _, session := range sessions {
 ## Dependencies
 
 ### Required Go Module Updates
+
 First, add the official MCP Go SDK to go.mod:
+
 ```bash
 go get github.com/modelcontextprotocol/go-sdk@latest
 ```
 
 ### Import Dependencies
+
 - `github.com/modelcontextprotocol/go-sdk/mcp` - Official MCP Go SDK
 - `google.golang.org/api/idtoken` - GCP Identity Token generation (for HTTP transport auth)
 - Standard Go context and HTTP packages
 
 ### Remove Unofficial Dependencies
+
 - Remove `github.com/mark3labs/mcp-go` from go.mod if present
 - Update any existing imports to use the official SDK
 
@@ -202,18 +223,21 @@ These patterns from the unofficial SDK should be implemented using official SDK 
 ## Advanced MCP Primitives for Research Enhancement
 
 ### Elicitation - Human-in-the-Loop Research
+
 **Purpose**: Enable structured human input during research tasks for better outcomes.
 
 **Primary Use Case: Research Query Refinement**
 When a user submits an initial research query, use elicitation to gather clarifying information before starting the research process.
 
 **Flow**:
+
 1. User submits initial query: "Research climate change impacts"
 2. Orchestrator elicits structured clarification
 3. User provides detailed parameters
 4. Orchestrator generates refined research plan and coordinates drones
 
 **Implementation**:
+
 ```go
 // Initial query refinement elicitation
 result, err := session.Elicit(ctx, &mcp.ElicitParams{
@@ -272,15 +296,18 @@ if result.Action == "accept" {
 ```
 
 **Additional Elicitation Use Cases**:
+
 - **Mid-research validation**: When drones find conflicting information
 - **Quality control**: Human review of findings before proceeding
 - **Ethical oversight**: Approval for sensitive research topics
 - **Parameter adjustment**: Refining search terms based on initial results
 
 ### Sampling - AI-Assisted Research Analysis
+
 **Purpose**: Request AI model completions for content analysis and synthesis.
 
 **Use Cases**:
+
 - **Research synthesis**: Combine findings from multiple drones into coherent insights
 - **Content analysis**: Extract key themes and patterns from research data
 - **Query expansion**: Generate related research questions or search terms
@@ -288,6 +315,7 @@ if result.Action == "accept" {
 - **Report generation**: Create structured summaries and recommendations
 
 **Implementation**:
+
 ```go
 // Request AI synthesis of multi-drone research results
 result, err := session.CreateMessage(ctx, &mcp.CreateMessageParams{
@@ -336,9 +364,11 @@ expansionResult, err := session.CreateMessage(ctx, &mcp.CreateMessageParams{
 ```
 
 ### Roots - Shared Research Workspace
+
 **Purpose**: Provide drones access to shared file systems for collaborative research.
 
 **Use Cases**:
+
 - **Shared research workspace**: Centralized storage for research artifacts and outputs
 - **Document repositories**: Access to existing research documents and datasets
 - **Template library**: Standardized formats for reports, citations, and data structures
@@ -346,6 +376,7 @@ expansionResult, err := session.CreateMessage(ctx, &mcp.CreateMessageParams{
 - **Result archival**: Long-term storage of research outputs for future reference
 
 **Implementation**:
+
 ```go
 // Client (orchestrator) exposes research workspace to drones
 client.AddRoots([]mcp.Root{
@@ -395,6 +426,7 @@ func saveResearchArtifact(session *mcp.ClientSession, data interface{}, path str
 ```
 
 **Benefits of Roots Integration**:
+
 - **Consistency**: All drones use same templates and formats
 - **Collaboration**: Multiple drones can contribute to shared documents
 - **Persistence**: Research artifacts survive individual drone lifecycles
@@ -404,15 +436,18 @@ func saveResearchArtifact(session *mcp.ClientSession, data interface{}, path str
 ## Advanced MCP Primitives for Research Enhancement
 
 ### Elicitation - Human-in-the-Loop Research
+
 **Purpose**: Enable drones to request structured human input during research tasks.
 
 **Use Cases**:
+
 - Research validation when conflicting information is found
 - Parameter refinement for ambiguous queries
 - Quality control and human review of findings
 - Ethical oversight for sensitive research topics
 
 **Implementation**:
+
 ```go
 // Request human validation of research findings
 result, err := session.Elicit(ctx, &mcp.ElicitParams{
@@ -430,15 +465,18 @@ result, err := session.Elicit(ctx, &mcp.ElicitParams{
 ```
 
 ### Sampling - AI-Assisted Research Analysis
+
 **Purpose**: Request AI model completions for content analysis and synthesis.
 
 **Use Cases**:
+
 - Analyze research findings and extract key insights
 - Synthesize information from multiple drones
 - Generate related research questions or search terms
 - Evaluate relevance and quality of research results
 
 **Implementation**:
+
 ```go
 // Request AI analysis of research data
 result, err := session.CreateMessage(ctx, &mcp.CreateMessageParams{
@@ -461,15 +499,18 @@ result, err := session.CreateMessage(ctx, &mcp.CreateMessageParams{
 ```
 
 ### Roots - Shared Research Workspace
+
 **Purpose**: Provide drones access to shared file systems for collaborative research.
 
 **Use Cases**:
+
 - Shared research workspace for storing/retrieving artifacts
 - Document repositories for content analysis
 - Centralized storage for research outputs
 - Access to templates and standardized formats
 
 **Implementation**:
+
 ```go
 // Client exposes research workspace
 client.AddRoots([]mcp.Root{
@@ -496,11 +537,13 @@ for _, resource := range resources.Resources {
 ```
 
 ## Configuration
+
 - Environment variables for authentication
 - Configurable timeouts and retry policies
 - Debug logging support
 
 ## Testing Strategy
+
 - Unit tests with mock MCP servers
 - Integration tests with real drone deployments
 - Load testing for connection pooling

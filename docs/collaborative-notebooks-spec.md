@@ -1,4 +1,5 @@
 # Specification: Progressive Data Analysis Pipeline
+
 ## Collaborative Research Notebook for Widescreen Research
 
 ### Core Pattern: Sequential Data Processing Chain
@@ -8,6 +9,7 @@
 ### Primary Implementation: Market Research Analysis
 
 #### Research Query Template
+
 ```
 "Analyze [market/trend/phenomenon] for [specific domain/timeframe]"
 
@@ -38,7 +40,9 @@ interface ProgressivePipeline {
 ### Detailed Stage Specifications
 
 #### **Stage 1: Data Collection Drone**
+
 **Responsibility**: Gather raw data from multiple sources
+
 ```javascript
 // Cell 1: Data source identification
 const dataSources = [
@@ -63,7 +67,9 @@ export { rawData, dataSources, dataQualityReport };
 ```
 
 #### **Stage 2: Data Processing Drone**
+
 **Responsibility**: Clean, normalize, and structure the data
+
 ```javascript
 // Cell 4: Import from previous stage
 import { rawData, dataSources, dataQualityReport } from './stage-1-collection';
@@ -96,7 +102,9 @@ export { cleanData, analysisDataset, qualityMetrics };
 ```
 
 #### **Stage 3: Analysis Drone**
+
 **Responsibility**: Perform statistical analysis and identify patterns
+
 ```javascript
 // Cell 8: Import processed data
 import { cleanData, analysisDataset, qualityMetrics } from './stage-2-processing';
@@ -137,7 +145,9 @@ export { trendAnalysis, comparativeMetrics, statisticalTests, keyInsights };
 ```
 
 #### **Stage 4: Synthesis Drone**
+
 **Responsibility**: Generate final report with conclusions and recommendations
+
 ```javascript
 // Cell 13: Import all analysis results
 import { trendAnalysis, comparativeMetrics, statisticalTests, keyInsights } from './stage-3-analysis';
@@ -195,6 +205,7 @@ export { finalReport, executiveSummary, recommendations };
 ### Technical Implementation
 
 #### MCP Tool Interface
+
 ```typescript
 // Orchestrator creates notebook
 await session.CallTool("notebook_create", {
@@ -218,6 +229,7 @@ await session.CallTool("notebook_run_pipeline", {
 ```
 
 #### Success Metrics
+
 - **Completeness**: All 4 stages completed successfully
 - **Data Quality**: >80% completeness score in processing stage
 - **Statistical Validity**: Significant results where expected
@@ -225,6 +237,7 @@ await session.CallTool("notebook_run_pipeline", {
 - **Reproducibility**: Notebook can be re-run with updated data
 
 ### Value Proposition
+
 1. **Transparency**: See exactly how conclusions were reached
 2. **Reproducibility**: Re-run analysis with new data
 3. **Modularity**: Improve any stage without rebuilding everything
@@ -236,17 +249,20 @@ This creates a **"research assembly line"** where each drone has a clear, specia
 ### Alternative Variations
 
 #### Variation 1: Cross-Validation Pipeline
+
 - Multiple drones collect data from different sources
 - Cross-validation drone compares and validates findings
 - Synthesis drone creates consensus report
 
 #### Variation 2: Iterative Refinement Pipeline
+
 - Initial analysis drone creates baseline
 - Review drone identifies gaps and questions
 - Refinement drone addresses gaps with additional research
 - Final synthesis incorporates all iterations
 
 #### Variation 3: Domain Expert Pipeline
+
 - Specialist drones for different aspects (technical, economic, regulatory)
 - Integration drone combines domain expertise
 - Validation drone ensures consistency across domains

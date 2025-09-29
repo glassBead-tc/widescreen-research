@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "firecrawl-mcp": {
+      "command": "node",
+      "args": ["/Users/b.c.nims/glassBead-local-mcp/retrieval-servers/firecrawl-mcp-server/dist/index.js"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-dc828ca1c1af4897adcb3f3c42ff01d9"
+      },
+      "alwaysAllow": [
+        "firecrawl_scrape",
+        "firecrawl_crawl",
+        "firecrawl_check_crawl_status",
+        "firecrawl_map"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "alwaysAllow": ["resolve-library-id"]
+    },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "exa",
+        "--key",
+        "fe556de3-a658-4330-a3e7-563cf6a91972"
+      ]
+    },
+    "widescreen-research": {
+      "command": "go",
+      "args": ["run", "./cmd/widescreen-research-mcp"],
+      "env": {
+        "GOOGLE_CLOUD_PROJECT": "widescreen-researcher",
+        "GCP_REGION": "us-central1",
+        "EXA_API_KEY": "04d84ad6-726b-450d-9274-4050b08ab052",
+        "LOG_LEVEL": "debug",
+        "PORT": "8080",
+        "COORDINATOR_BASE_URL": "http://localhost:9020",
+        "DRONE_TYPE": "research"
+      },
+      "alwaysAllow": ["widescreen-research"]
+    }
+  }
+}

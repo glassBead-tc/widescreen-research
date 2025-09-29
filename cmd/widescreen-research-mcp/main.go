@@ -22,16 +22,16 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Create and start the MCP server
-	srv, err := server.NewWidescreenResearchServer()
+	// Create and start the MCP server (Official SDK version)
+	srv, err := server.NewWidescreenResearchServerOfficial()
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 
-	// Start the server
+	// Start the server in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		if err := srv.Start(ctx); err != nil {
+		if err := srv.Run(ctx); err != nil {
 			errChan <- err
 		}
 	}()
