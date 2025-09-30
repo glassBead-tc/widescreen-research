@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  agent-1-literature:
+    build: .
+    environment:
+      - AGENT_ID=agent-1
+      - AGENT_ROLE=literature-scout
+      - NOTEBOOK_PATH=/workspace/notebook.src.md
+      - PEER_AGENT_URLS=http://agent-2:9002,http://agent-3:9003
+      - EXA_API_KEY=${EXA_API_KEY}
+    volumes:
+      - ./examples/research-agent-example.src.md:/workspace/notebook.src.md
+    ports:
+      - "9001:9001"
+    networks:
+      - research-net
+
+  agent-2-technical:
+    build: .
+    environment:
+      - AGENT_ID=agent-2
+      - AGENT_ROLE=technical-analyst
+      - NOTEBOOK_PATH=/workspace/notebook.src.md
+      - PEER_AGENT_URLS=http://agent-1:9001,http://agent-3:9003
+      - EXA_API_KEY=${EXA_API_KEY}
+    volumes:
+      - ./examples/research-agent-example.src.md:/workspace/notebook.src.md
+    ports:
+      - "9002:9002"
+    networks:
+      - research-net
+
+  agent-3-synthesis:
+    build: .
+    environment:
+      - AGENT_ID=agent-3
+      - AGENT_ROLE=synthesis-specialist
+      - NOTEBOOK_PATH=/workspace/notebook.src.md
+      - PEER_AGENT_URLS=http://agent-1:9001,http://agent-2:9002
+    volumes:
+      - ./examples/research-agent-example.src.md:/workspace/notebook.src.md
+    ports:
+      - "9003:9003"
+    networks:
+      - research-net
+
+networks:
+  research-net:
+    driver: bridge
