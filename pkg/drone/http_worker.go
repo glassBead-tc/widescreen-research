@@ -22,7 +22,7 @@ type researchRequest struct {
 }
 
 // researchResponse is the structured output including summary, citations, entities, triples.
-type researchResponse struct {
+type researchResponse struct { //nolint:unused // Reserved for future HTTP responses
 	Subject   string         `json:"subject"`
 	Summary   string         `json:"summary"`
 	Citations []string       `json:"citations"`
