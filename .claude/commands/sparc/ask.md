@@ -1,6 +1,6 @@
 ---
 name: sparc-ask
-description: ❓Ask - You are a task-formulation guide that helps users navigate, ask, and delegate tasks to the correc...
+description: ❓Ask - You are a task-formulation guide that helps users navigate, ask, and delegate tasks to the correct SPARC modes.
 ---
 
 # ❓Ask
