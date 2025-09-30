@@ -4,10 +4,8 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -217,11 +215,3 @@ For complete migration guide, see: docs/mcp-server-migration-spec.md
 `, version)
 }
 
-func countLines(r io.Reader) int {
-	scanner := bufio.NewScanner(r)
-	count := 0
-	for scanner.Scan() {
-		count++
-	}
-	return count
-}

@@ -506,7 +506,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getOrchestratorURL() string {
+func getOrchestratorURL() string { //nolint:unused // Reserved for future use
 	return getEnvOrDefault("ORCHESTRATOR_URL", "http://localhost:8080")
 }
 

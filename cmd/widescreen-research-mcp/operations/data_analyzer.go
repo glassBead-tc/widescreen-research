@@ -455,7 +455,7 @@ func (da *DataAnalyzer) identifyErrorPattern(results []schemas.DroneResult) *sch
 
 	if maxCount > len(results)/10 { // More than 10% errors of same type
 		return &schemas.Pattern{
-			Name:        fmt.Sprintf("Recurring %s Errors", strings.Title(maxType)),
+			Name:        fmt.Sprintf("Recurring %s Errors", maxType),
 			Description: fmt.Sprintf("Multiple drones experienced %s errors", maxType),
 			Frequency:   maxCount,
 			Confidence:  float64(maxCount) / float64(len(results)),
@@ -598,7 +598,7 @@ func (da *DataAnalyzer) generateDetailedSummary(results []schemas.DroneResult) s
 	summary := da.generateSummary(results)
 
 	// Add more details
-	summary += fmt.Sprintf("\n\nDetailed Analysis:\n")
+	summary += "\n\nDetailed Analysis:\n"
 	summary += fmt.Sprintf("- Completion rate: %.2f%%\n", da.calculateCompletionRate(results)*100)
 	summary += fmt.Sprintf("- Data quality score: %.2f/10\n", da.assessDataQuality(results))
 
@@ -655,6 +655,8 @@ func (da *DataAnalyzer) generateTimeSeriesData(results []schemas.DroneResult) ma
 		times = append(times, time)
 		counts = append(counts, count)
 	}
+	_ = times   // Used in visualization (future)
+	_ = counts  // Used in visualization (future)
 
 	// Sort by time
 	sort.Slice(times, func(i, j int) bool {
