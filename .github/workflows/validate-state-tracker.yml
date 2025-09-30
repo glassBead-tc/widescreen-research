@@ -1,0 +1,89 @@
+name: Validate State Tracker Pattern
+
+on:
+  pull_request:
+    paths:
+      - 'pkg/mcp/**/*.go'
+      - 'cmd/**/server/**/*.go'
+  push:
+    branches:
+      - main
+      - develop
+      - 'feat/**'
+    paths:
+      - 'pkg/mcp/**/*.go'
+      - 'cmd/**/server/**/*.go'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Validate State Tracker Pattern in Go MCP Servers
+        run: |
+          echo "🔍 Checking for state tracker pattern violations..."
+          echo "✅ Manual review required - automated validation TBD"
+          # TODO: Implement Go-specific state tracker validation
+
+      - name: Comment on PR (if failed)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ State Tracker Pattern Validation Failed
+
+              The MCP server must be a **state tracker only**. It should never provide intelligence.
+
+              ### 🎯 Core Principle
+
+              > The **LLM client provides ALL intelligence**. The **server only tracks state**.
+
+              ### Key Rules
+
+              #### ✅ The Server Should:
+              - Validate parameters (types, required fields)
+              - Store state in session (unmodified)
+              - Track progress (counts, percentages)
+              - Return metadata only
+              - Handle errors
+
+              #### ❌ The Server Should NEVER:
+              - Generate content (ideas, hypotheses, solutions)
+              - Analyze content (evaluate, assess, interpret)
+              - Make decisions based on content
+              - Provide intelligence (infer, deduce, conclude)
+              - Transform content (modify, enhance, improve)
+
+              ### 🔧 How to Fix
+
+              1. Review the validation errors in the workflow logs
+              2. Run locally: \`cd clearthought-onepointfive && npm run validate:state-tracker\`
+              3. Fix violations following the [State Tracker Pattern](../docs/state-tracker-pattern.md)
+              4. Ensure all intelligence comes from the LLM via \`prompt\` and \`parameters\`
+
+              ### 📚 Documentation
+
+              - [State Tracker Pattern](../clearthought-onepointfive/docs/state-tracker-pattern.md)
+              - [One-Step-Per-Call Implementation](../clearthought-onepointfive/docs/one-step-per-call-implementation.md)
+              `
+            })
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-tracker-validation-report
+          path: clearthought-onepointfive/validation-report.txt
+          if-no-files-found: ignore
