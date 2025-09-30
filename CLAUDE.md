@@ -260,8 +260,8 @@ See `project_spec.md` for comprehensive architecture documentation and `docs/OPE
 
 ## Related Projects
 
-- **clearthought-onepointfive/**: TypeScript MCP server for systematic thinking and mental models (separate Node.js project)
 - **examples/node/**: Node.js MCP server examples and templates
+- **packages/research-agent-mcp/**: Minimal notebook-as-MCP-agent runtime for multi-agent research
 
 ## Resources
 
