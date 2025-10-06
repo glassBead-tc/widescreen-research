@@ -101,10 +101,16 @@ repos:
   # Local hooks - run CI checks before push
   - repo: local
     hooks:
+      - id: no-mock-code
+        name: Check for mock/placeholder code
+        entry: bash -c 'if grep -rn --include="*.go" --exclude="*_test.go" -E "(In a real implementation|mock implementation|For now, we.ll create a mock)" cmd/ pkg/ 2>/dev/null; then echo "❌ Mock implementation code found! Replace with real implementation before committing."; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: local-ci-quick
         name: Quick CI checks (build + test)
         entry: make ci-quick
         language: system
-        stages: [push]
+        stages: [pre-push]
         pass_filenames: false
         always_run: true

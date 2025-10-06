@@ -31,9 +31,6 @@ type Orchestrator struct {
 	// MCP client for connecting to other MCP servers
 	mcpClient *MCPClient
 
-	// Claude SDK agent
-	claudeAgent *ClaudeAgent
-
 	// Research management
 	activeSessions map[string]*ResearchSession
 	reports        map[string]*schemas.ResearchReport
@@ -73,6 +70,16 @@ type ResearchTemplate struct {
 	Workflow    map[string]interface{} `json:"workflow"`
 }
 
+// DataAnalysis contains analysis results from research data
+type DataAnalysis struct {
+	Patterns          []schemas.Pattern
+	TopInsights       []string
+	Statistics        map[string]interface{}
+	Duration          time.Duration
+	AverageConfidence float64
+	Metrics           schemas.ResearchMetrics
+}
+
 // NewOrchestrator creates a new orchestrator instance
 func NewOrchestrator() (*Orchestrator, error) {
 	projectID := getEnvOrDefault("GOOGLE_CLOUD_PROJECT", "")
@@ -89,15 +96,11 @@ func NewOrchestrator() (*Orchestrator, error) {
 	// Create MCP client
 	mcpClient := NewMCPClient()
 
-	// Create Claude agent
-	claudeAgent := NewClaudeAgent()
-
 	orch := &Orchestrator{
 		firestoreClient: firestoreClient,
 		pubsubClient:    pubsubClient,
 		runClient:       runClient,
 		mcpClient:       mcpClient,
-		claudeAgent:     claudeAgent,
 		activeSessions:  make(map[string]*ResearchSession),
 		reports:         make(map[string]*schemas.ResearchReport),
 		templates:       make(map[string]*ResearchTemplate),
@@ -116,11 +119,6 @@ func (o *Orchestrator) Initialize(ctx context.Context) error {
 	// Initialize MCP client connections
 	if err := o.mcpClient.Initialize(ctx); err != nil {
 		log.Printf("Warning: MCP client initialization failed (will be unavailable): %v", err)
-	}
-
-	// Initialize Claude agent
-	if err := o.claudeAgent.Initialize(ctx); err != nil {
-		log.Printf("Warning: Claude agent initialization failed (will be unavailable): %v", err)
 	}
 
 	// Create required Pub/Sub topics (only if GCP is configured)
@@ -312,26 +310,10 @@ func (o *Orchestrator) deployDrone(ctx context.Context, droneID string, config *
 
 // coordinateResearch coordinates the research process across drones
 func (o *Orchestrator) coordinateResearch(ctx context.Context, session *ResearchSession) error {
-	// 1. Break down the high-level topic into specific sub-queries.
-	log.Printf("Breaking down research topic: %s", session.Config.Topic)
-	subQueries, err := o.claudeAgent.GenerateSubQueries(ctx, session.Config.Topic, session.Config.ResearcherCount)
-	if err != nil {
-		return fmt.Errorf("failed to generate sub-queries: %w", err)
-	}
-	log.Printf("Generated %d sub-queries for topic '%s'", len(subQueries), session.Config.Topic)
+	// 1. Send research topic to each drone
+	log.Printf("Distributing research topic to drones: %s", session.Config.Topic)
 
-	// TODO: For now, we assume the number of drones matches the number of sub-queries.
-	// A more robust implementation would use a queue to distribute subQueries to available drones.
-	if len(subQueries) != len(session.Drones) {
-		log.Printf("Warning: The number of sub-queries (%d) does not match the number of drones (%d). Adjusting drone count for this session.", len(subQueries), len(session.Drones))
-		// This would be a place to dynamically adjust drone count if the architecture supported it.
-		// For now, we'll just truncate the query list to match the drone count.
-		if len(subQueries) > len(session.Drones) {
-			subQueries = subQueries[:len(session.Drones)]
-		}
-	}
-
-	// 2. Send a unique instruction to each drone.
+	// 2. Send research task to each drone
 	o.mu.RLock()
 	drones := make([]*DroneInfo, 0, len(session.Drones))
 	for _, drone := range session.Drones {
@@ -339,15 +321,10 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 	}
 	o.mu.RUnlock()
 
-	for i, drone := range drones {
-		if i >= len(subQueries) {
-			break // Don't send instructions if we have more drones than tasks.
-		}
-
-		// The drone needs to know its task ID (which can be the drone ID for simplicity)
-		// and the query. The other info is passed via env vars.
+	for _, drone := range drones {
+		// Each drone researches the topic - drones will use their own methods/sources
 		task := map[string]interface{}{
-			"subject": subQueries[i],
+			"subject": session.Config.Topic,
 			"run_id":  session.Config.SessionID,
 		}
 
@@ -355,7 +332,7 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 			log.Printf("Failed to send instructions to drone %s: %v", drone.ID, err)
 			drone.Status = "failed_to_instruct"
 		} else {
-			log.Printf("Successfully sent task '%s' to drone %s", subQueries[i], drone.ID)
+			log.Printf("Successfully sent research task to drone %s", drone.ID)
 			drone.Status = "running"
 		}
 	}
@@ -436,15 +413,25 @@ func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSess
 		return nil, fmt.Errorf("failed to analyze results: %w", err)
 	}
 
-	// 3. Generate structured report using Claude agent
-	report, err := o.claudeAgent.GenerateReport(ctx, session.Config, session.Results, analysis)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate report: %w", err)
+	// 3. Generate structured report from drone results
+	report := &schemas.ResearchReport{
+		ID:          uuid.New().String(),
+		SessionID:   session.Config.SessionID,
+		Title:       fmt.Sprintf("Research Report: %s", session.Config.Topic),
+		Executive:   o.generateExecutiveSummary(session, analysis),
+		Sections:    o.generateReportSections(session, analysis),
+		Methodology: fmt.Sprintf("Distributed research using %d parallel drones with %s depth.", session.Config.ResearcherCount, session.Config.ResearchDepth),
+		Data:        o.aggregateDroneData(session.Results),
+		CreatedAt:   time.Now(),
+		Metadata: schemas.ReportMetadata{
+			ResearchTopic:   session.Config.Topic,
+			ResearcherCount: session.Config.ResearcherCount,
+			Duration:        analysis.Duration,
+			DataPoints:      len(session.Results),
+			Sources:         o.extractSources(session.Results),
+			Metrics:         analysis.Metrics,
+		},
 	}
-
-	report.ID = uuid.New().String()
-	report.SessionID = session.Config.SessionID
-	report.CreatedAt = time.Now()
 
 	// 4. Render the structured report to a user-facing Markdown file
 	markdownContent, err := o.renderReportToMarkdown(report, resultFilePaths)
@@ -542,7 +529,84 @@ func (o *Orchestrator) Shutdown() {
 
 	// Shutdown MCP client
 	o.mcpClient.Shutdown()
+}
 
-	// Shutdown Claude agent
-	o.claudeAgent.Shutdown()
+// generateExecutiveSummary creates an executive summary from research results
+func (o *Orchestrator) generateExecutiveSummary(session *ResearchSession, analysis *DataAnalysis) string {
+	successCount := 0
+	for _, result := range session.Results {
+		if result.Status == "completed" {
+			successCount++
+		}
+	}
+
+	summary := fmt.Sprintf("Research Summary: %s\n\n", session.Config.Topic)
+	summary += fmt.Sprintf("Completed using %d research drones over %v.\n\n", session.Config.ResearcherCount, analysis.Duration)
+	summary += fmt.Sprintf("Successfully collected data from %d out of %d drones.\n", successCount, len(session.Results))
+
+	if len(analysis.TopInsights) > 0 {
+		summary += "\nKey Findings:\n"
+		for i, insight := range analysis.TopInsights {
+			if i >= 5 {
+				break
+			}
+			summary += fmt.Sprintf("- %s\n", insight)
+		}
+	}
+
+	return summary
+}
+
+// generateReportSections creates report sections from drone results
+func (o *Orchestrator) generateReportSections(session *ResearchSession, analysis *DataAnalysis) []schemas.ReportSection {
+	sections := []schemas.ReportSection{
+		{
+			Title:    "Research Findings",
+			Content:  fmt.Sprintf("Collected data from %d research drones. Identified %d patterns with average confidence of %.2f.", len(session.Results), len(analysis.Patterns), analysis.AverageConfidence),
+			Insights: analysis.TopInsights,
+			Data:     analysis.Statistics,
+		},
+	}
+
+	return sections
+}
+
+// aggregateDroneData aggregates data from all drone results
+func (o *Orchestrator) aggregateDroneData(results []schemas.DroneResult) map[string]interface{} {
+	aggregated := make(map[string]interface{})
+
+	var allData []map[string]interface{}
+	for _, result := range results {
+		if result.Status == "completed" && result.Data != nil {
+			allData = append(allData, result.Data)
+		}
+	}
+
+	aggregated["drone_results"] = allData
+	aggregated["total_drones"] = len(results)
+	aggregated["successful_drones"] = len(allData)
+
+	return aggregated
+}
+
+// extractSources extracts unique sources from drone results
+func (o *Orchestrator) extractSources(results []schemas.DroneResult) []string {
+	sourceMap := make(map[string]bool)
+
+	for _, result := range results {
+		if sources, ok := result.Data["sources"].([]interface{}); ok {
+			for _, source := range sources {
+				if s, ok := source.(string); ok {
+					sourceMap[s] = true
+				}
+			}
+		}
+	}
+
+	sources := make([]string, 0, len(sourceMap))
+	for source := range sourceMap {
+		sources = append(sources, source)
+	}
+
+	return sources
 }

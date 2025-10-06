@@ -4,11 +4,8 @@
 package orchestrator
 
 import (
-	"context"
 	"os"
 	"testing"
-
-	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 )
 
 // MockGCP is a mock implementation of the GCP clients.
@@ -59,25 +56,5 @@ func TestOrchestratorInitialization(t *testing.T) {
 	}
 }
 
-func TestBreakDownResearchTopicMock(t *testing.T) {
-	// This test ensures our mock topic breakdown works as expected.
-	agent := NewClaudeAgent()
-	config := &schemas.ResearchConfig{
-		Topic:           "Top 3 AI Companies",
-		ResearcherCount: 3,
-	}
-
-	queries, err := agent.GenerateSubQueries(context.Background(), config.Topic, config.ResearcherCount)
-	if err != nil {
-		t.Fatalf("GenerateSubQueries returned an error: %v", err)
-	}
-
-	if len(queries) != 3 {
-		t.Errorf("Expected 3 sub-queries, but got %d", len(queries))
-	}
-
-	expectedFirstQuery := "Detailed analysis of OpenAI's business model, products, and recent controversies."
-	if queries[0] != expectedFirstQuery {
-		t.Errorf("Expected first query to be '%s', but got '%s'", expectedFirstQuery, queries[0])
-	}
-}
+// TestBreakDownResearchTopicMock removed - ClaudeAgent has been deleted
+// Drones now receive the research topic directly and handle their own methods
