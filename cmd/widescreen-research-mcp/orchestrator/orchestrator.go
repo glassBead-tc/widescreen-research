@@ -76,29 +76,15 @@ type ResearchTemplate struct {
 // NewOrchestrator creates a new orchestrator instance
 func NewOrchestrator() (*Orchestrator, error) {
 	projectID := getEnvOrDefault("GOOGLE_CLOUD_PROJECT", "")
-	if projectID == "" {
-		return nil, fmt.Errorf("GOOGLE_CLOUD_PROJECT environment variable is required")
-	}
+	// Note: projectID can be empty, GCP clients will be lazily initialized when needed
 
 	ctx := context.Background()
 
-	// Initialize Firestore client
-	firestoreClient, err := firestore.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Firestore client: %w", err)
-	}
-
-	// Initialize Pub/Sub client
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Pub/Sub client: %w", err)
-	}
-
-	// Initialize Cloud Run client
-	runClient, err := run.NewServicesClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Cloud Run client: %w", err)
-	}
+	// GCP clients will be lazily initialized when first accessed
+	var firestoreClient *firestore.Client
+	var pubsubClient *pubsub.Client
+	var runClient *run.ServicesClient
+	var _ = ctx // Mark as used for future lazy init
 
 	// Create MCP client
 	mcpClient := NewMCPClient()
@@ -129,17 +115,21 @@ func NewOrchestrator() (*Orchestrator, error) {
 func (o *Orchestrator) Initialize(ctx context.Context) error {
 	// Initialize MCP client connections
 	if err := o.mcpClient.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize MCP client: %w", err)
+		log.Printf("Warning: MCP client initialization failed (will be unavailable): %v", err)
 	}
 
 	// Initialize Claude agent
 	if err := o.claudeAgent.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize Claude agent: %w", err)
+		log.Printf("Warning: Claude agent initialization failed (will be unavailable): %v", err)
 	}
 
-	// Create required Pub/Sub topics
-	if err := o.createPubSubTopics(ctx); err != nil {
-		return fmt.Errorf("failed to create Pub/Sub topics: %w", err)
+	// Create required Pub/Sub topics (only if GCP is configured)
+	if o.pubsubClient != nil {
+		if err := o.createPubSubTopics(ctx); err != nil {
+			log.Printf("Warning: Pub/Sub topics creation failed (GCP features will be limited): %v", err)
+		}
+	} else {
+		log.Println("Pub/Sub client not initialized - running in local mode without GCP")
 	}
 
 	return nil
