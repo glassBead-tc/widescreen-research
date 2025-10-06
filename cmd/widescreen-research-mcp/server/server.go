@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/operations"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/orchestrator"
@@ -20,8 +21,6 @@ import (
 type WidescreenResearchServerOfficial struct {
 	mcpServer    *mcp.Server
 	orchestrator *orchestrator.Orchestrator
-	operations   *operations.OperationRegistry
-	elicitation  *ElicitationManager
 }
 
 // NewWidescreenResearchServerOfficial creates a new instance using official SDK
@@ -32,16 +31,8 @@ func NewWidescreenResearchServerOfficial() (*WidescreenResearchServerOfficial, e
 		return nil, fmt.Errorf("failed to create orchestrator: %w", err)
 	}
 
-	// Create operation registry
-	opRegistry := operations.NewOperationRegistry()
-
-	// Create elicitation manager
-	elicitManager := NewElicitationManager()
-
 	srv := &WidescreenResearchServerOfficial{
 		orchestrator: orch,
-		operations:   opRegistry,
-		elicitation:  elicitManager,
 	}
 
 	// Create MCP server with official SDK
@@ -62,11 +53,8 @@ func NewWidescreenResearchServerOfficial() (*WidescreenResearchServerOfficial, e
 
 // WidescreenResearchArgs defines the arguments for the main tool
 type WidescreenResearchArgs struct {
-	Operation          string                 `json:"operation" jsonschema:"Research operation to perform"`
-	Query              string                 `json:"query,omitempty" jsonschema:"Research query or topic"`
-	SessionID          string                 `json:"session_id,omitempty" jsonschema:"Session ID for elicitation flow"`
-	ElicitationAnswers map[string]interface{} `json:"elicitation_answers,omitempty" jsonschema:"Answers to elicitation questions"`
-	Parameters         map[string]interface{} `json:"parameters,omitempty" jsonschema:"Additional operation parameters"`
+	Operation  string                 `json:"operation" jsonschema:"Research operation to perform (orchestrate-research, gcp-provision, analyze-findings)"`
+	Parameters map[string]interface{} `json:"parameters" jsonschema:"Operation parameters including topic, researcher_count, etc."`
 }
 
 // registerTools registers all MCP tools
@@ -84,45 +72,18 @@ func (s *WidescreenResearchServerOfficial) handleWidescreenResearchTool(
 	req *mcp.CallToolRequest,
 	args WidescreenResearchArgs,
 ) (*mcp.CallToolResult, any, error) {
-	// Create input struct
-	input := &schemas.WidescreenResearchInput{
-		Operation:          args.Operation,
-		SessionID:          args.SessionID,
-		ElicitationAnswers: args.ElicitationAnswers,
-		Parameters: map[string]interface{}{
-			"query": args.Query,
-		},
-	}
-
-	// Merge additional parameters
-	if args.Parameters != nil {
-		for k, v := range args.Parameters {
-			input.Parameters[k] = v
-		}
-	}
-
-	// Check if we need elicitation
-	if input.Operation == "" || input.Operation == "start" {
-		result, err := s.handleElicitation(ctx, input)
-		if err != nil {
-			return &mcp.CallToolResult{
-				IsError: true,
-				Content: []mcp.Content{
-					&mcp.TextContent{Text: fmt.Sprintf("Elicitation error: %v", err)},
-				},
-			}, nil, nil
-		}
-
-		resultJSON, _ := json.MarshalIndent(result, "", "  ")
+	// Validate operation
+	if args.Operation == "" {
 		return &mcp.CallToolResult{
+			IsError: true,
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: string(resultJSON)},
+				&mcp.TextContent{Text: "operation parameter is required"},
 			},
 		}, nil, nil
 	}
 
 	// Execute the requested operation
-	result, err := s.executeOperation(ctx, input)
+	result, err := s.executeOperation(ctx, args.Operation, args.Parameters)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,
@@ -140,69 +101,25 @@ func (s *WidescreenResearchServerOfficial) handleWidescreenResearchTool(
 	}, nil, nil
 }
 
-// handleElicitation manages the elicitation process
-func (s *WidescreenResearchServerOfficial) handleElicitation(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
-	// Check current elicitation state
-	state := s.elicitation.GetState(input.SessionID)
-
-	if state == nil {
-		// Start new elicitation
-		questions := s.elicitation.GetInitialQuestions()
-		return &schemas.ElicitationResponse{
-			Type:      "elicitation",
-			Questions: questions,
-			SessionID: s.elicitation.CreateSession(),
-		}, nil
-	}
-
-	// Process answers and get next questions
-	nextQuestions, complete := s.elicitation.ProcessAnswers(input.SessionID, input.ElicitationAnswers)
-
-	if !complete {
-		return &schemas.ElicitationResponse{
-			Type:      "elicitation",
-			Questions: nextQuestions,
-			SessionID: input.SessionID,
-		}, nil
-	}
-
-	// Elicitation complete, prepare for research
-	config := s.elicitation.GetResearchConfig(input.SessionID)
-	return &schemas.ElicitationResponse{
-		Type:      "ready",
-		SessionID: input.SessionID,
-		Message:   "Elicitation complete. Ready to start research.",
-		Config:    config,
-	}, nil
-}
-
 // executeOperation executes the requested operation
-func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
-	operation := s.operations.GetOperation(input.Operation)
-	if operation == nil {
-		return nil, fmt.Errorf("unknown operation: %s", input.Operation)
-	}
-
+func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context, operation string, params map[string]interface{}) (interface{}, error) {
 	// Execute operation based on type
-	switch input.Operation {
+	switch operation {
 	case "orchestrate-research":
-		return s.handleOrchestrateResearch(ctx, input)
+		return s.handleOrchestrateResearch(ctx, params)
 	case "gcp-provision":
-		return s.handleGCPProvision(ctx, input)
+		return s.handleGCPProvision(ctx, params)
 	case "analyze-findings":
-		return s.handleAnalyzeFindings(ctx, input)
+		return s.handleAnalyzeFindings(ctx, params)
 	default:
-		return operation.Handler(ctx, input.Parameters)
+		return nil, fmt.Errorf("unknown operation: %s", operation)
 	}
 }
 
 // handleOrchestrateResearch handles the main research orchestration
-func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
-	// Get research configuration from elicitation
-	config := s.elicitation.GetResearchConfig(input.SessionID)
-	if config == nil {
-		return nil, fmt.Errorf("no research configuration found for session")
-	}
+func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+	// Build research configuration from parameters
+	config := buildResearchConfig(params)
 
 	// Start orchestration
 	result, err := s.orchestrator.OrchestrateResearch(ctx, config)
@@ -214,15 +131,56 @@ func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context
 }
 
 // handleGCPProvision handles GCP resource provisioning
-func (s *WidescreenResearchServerOfficial) handleGCPProvision(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
+func (s *WidescreenResearchServerOfficial) handleGCPProvision(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	provisioner := operations.NewGCPProvisioner()
-	return provisioner.Execute(ctx, input.Parameters)
+	return provisioner.Execute(ctx, params)
 }
 
 // handleAnalyzeFindings handles data analysis
-func (s *WidescreenResearchServerOfficial) handleAnalyzeFindings(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
+func (s *WidescreenResearchServerOfficial) handleAnalyzeFindings(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	analyzer := operations.NewDataAnalyzer()
-	return analyzer.Execute(ctx, input.Parameters)
+	return analyzer.Execute(ctx, params)
+}
+
+// buildResearchConfig builds a ResearchConfig from parameter map
+func buildResearchConfig(params map[string]interface{}) *schemas.ResearchConfig {
+	config := &schemas.ResearchConfig{
+		SessionID:         getStringParam(params, "session_id", ""),
+		Topic:             getStringParam(params, "topic", ""),
+		ResearcherCount:   getIntParam(params, "researcher_count", 10),
+		ResearchDepth:     getStringParam(params, "research_depth", "standard"),
+		OutputFormat:      getStringParam(params, "output_format", "structured_json"),
+		TimeoutMinutes:    getIntParam(params, "timeout_minutes", 60),
+		PriorityLevel:     getStringParam(params, "priority_level", "normal"),
+		WorkflowTemplates: getStringParam(params, "workflow_templates", ""),
+		SpecificSources:   getStringParam(params, "specific_sources", ""),
+		CreatedAt:         time.Now(),
+	}
+
+	// Generate session ID if not provided
+	if config.SessionID == "" {
+		config.SessionID = fmt.Sprintf("session-%d", time.Now().Unix())
+	}
+
+	return config
+}
+
+// Helper functions for parameter extraction
+func getStringParam(params map[string]interface{}, key, defaultValue string) string {
+	if val, ok := params[key].(string); ok {
+		return val
+	}
+	return defaultValue
+}
+
+func getIntParam(params map[string]interface{}, key string, defaultValue int) int {
+	if val, ok := params[key].(float64); ok {
+		return int(val)
+	}
+	if val, ok := params[key].(int); ok {
+		return val
+	}
+	return defaultValue
 }
 
 // Run starts the MCP server with stdio transport

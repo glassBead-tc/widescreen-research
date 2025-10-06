@@ -5,39 +5,6 @@ package schemas
 
 import "time"
 
-// WidescreenResearchInput represents the input for the widescreen-research tool
-type WidescreenResearchInput struct {
-	Operation          string                 `json:"operation,omitempty"`
-	SessionID          string                 `json:"session_id,omitempty"`
-	ElicitationAnswers map[string]interface{} `json:"elicitation_answers,omitempty"`
-	Parameters         map[string]interface{} `json:"parameters,omitempty"`
-}
-
-// ElicitationQuestion represents a question in the elicitation process
-type ElicitationQuestion struct {
-	ID       string                 `json:"id"`
-	Question string                 `json:"question"`
-	Type     string                 `json:"type"` // text, number, select, multiselect
-	Required bool                   `json:"required"`
-	Options  []ElicitationOption    `json:"options,omitempty"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// ElicitationOption represents an option for select/multiselect questions
-type ElicitationOption struct {
-	Value string `json:"value"`
-	Label string `json:"label"`
-}
-
-// ElicitationResponse represents the response from the elicitation process
-type ElicitationResponse struct {
-	Type      string                `json:"type"` // elicitation, ready, error
-	Questions []ElicitationQuestion `json:"questions,omitempty"`
-	SessionID string                `json:"session_id"`
-	Message   string                `json:"message,omitempty"`
-	Config    *ResearchConfig       `json:"config,omitempty"`
-}
-
 // ResearchConfig represents the configuration for a research session
 type ResearchConfig struct {
 	SessionID         string    `json:"session_id"`
