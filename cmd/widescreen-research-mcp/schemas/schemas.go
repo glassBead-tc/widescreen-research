@@ -115,29 +115,6 @@ type GCPResource struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// SequentialThinkingRequest represents a sequential thinking request
-type SequentialThinkingRequest struct {
-	Problem  string   `json:"problem"`
-	Context  string   `json:"context,omitempty"`
-	Steps    []string `json:"steps,omitempty"`
-	MaxSteps int      `json:"max_steps,omitempty"`
-}
-
-// SequentialThinkingResponse represents the response from sequential thinking
-type SequentialThinkingResponse struct {
-	Thoughts   []ThoughtStep `json:"thoughts"`
-	Solution   string        `json:"solution"`
-	Confidence float64       `json:"confidence"`
-}
-
-// ThoughtStep represents a single step in sequential thinking
-type ThoughtStep struct {
-	Step       int     `json:"step"`
-	Thought    string  `json:"thought"`
-	Reasoning  string  `json:"reasoning"`
-	Confidence float64 `json:"confidence"`
-}
-
 // DataAnalysisRequest represents a request to analyze research data
 type DataAnalysisRequest struct {
 	Data         []DroneResult          `json:"data"`

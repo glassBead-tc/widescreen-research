@@ -187,8 +187,6 @@ func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context,
 	switch input.Operation {
 	case "orchestrate-research":
 		return s.handleOrchestrateResearch(ctx, input)
-	case "sequential-thinking":
-		return s.handleSequentialThinking(ctx, input)
 	case "gcp-provision":
 		return s.handleGCPProvision(ctx, input)
 	case "analyze-findings":
@@ -213,12 +211,6 @@ func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context
 	}
 
 	return result, nil
-}
-
-// handleSequentialThinking handles sequential thinking operations
-func (s *WidescreenResearchServerOfficial) handleSequentialThinking(ctx context.Context, input *schemas.WidescreenResearchInput) (interface{}, error) {
-	thinking := operations.NewSequentialThinking()
-	return thinking.Execute(ctx, input.Parameters)
 }
 
 // handleGCPProvision handles GCP resource provisioning
