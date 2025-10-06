@@ -155,12 +155,8 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	// Start monitoring the session
 	go o.monitorSession(ctx, session)
 
-	// Subscribe queue to Pub/Sub to collect results (if Pub/Sub is available)
-	if o.pubsubClient != nil {
-		if err := session.Queue.Subscribe(ctx, o.pubsubClient); err != nil {
-			log.Printf("Warning: failed to subscribe queue (results won't be collected): %v", err)
-		}
-	}
+	// Start collecting results from queue
+	go o.collectResults(ctx, session)
 
 	// Provision drones
 	log.Printf("Provisioning %d research drones for session %s", config.ResearcherCount, config.SessionID)
@@ -368,13 +364,11 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			// Sync results from queue to session
-			queueResults := session.Queue.GetResults()
-			o.mu.Lock()
-			session.Results = queueResults
+			// Check completion status (collectResults goroutine is updating session.Results in background)
+			o.mu.RLock()
 			completedCount := len(session.Results)
 			totalCount := session.Config.ResearcherCount
-			o.mu.Unlock()
+			o.mu.RUnlock()
 
 			if completedCount >= totalCount {
 				log.Printf("All %d drones completed for session %s", totalCount, session.Config.SessionID)
