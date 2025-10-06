@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/operations"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/orchestrator"
@@ -239,10 +240,28 @@ func (s *WidescreenResearchServerOfficial) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize orchestrator: %w", err)
 	}
 
-	log.Println("Widescreen research MCP server started (Official SDK)")
+	log.Println("Widescreen research MCP server started (Official SDK) with stdio transport")
 
 	// Run server with stdio transport
 	return s.mcpServer.Run(ctx, &mcp.StdioTransport{})
+}
+
+// RunHTTP starts the MCP server with streamable HTTP transport
+func (s *WidescreenResearchServerOfficial) RunHTTP(ctx context.Context, addr string) error {
+	// Initialize orchestrator
+	if err := s.orchestrator.Initialize(ctx); err != nil {
+		return fmt.Errorf("failed to initialize orchestrator: %w", err)
+	}
+
+	// Create HTTP handler
+	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+		return s.mcpServer
+	}, nil)
+
+	log.Printf("Widescreen research MCP server started with HTTP transport on %s", addr)
+
+	// Start HTTP server
+	return http.ListenAndServe(addr, handler)
 }
 
 // Shutdown gracefully shuts down the server
