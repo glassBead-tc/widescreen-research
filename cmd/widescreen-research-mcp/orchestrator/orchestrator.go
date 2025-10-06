@@ -155,6 +155,13 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	// Start monitoring the session
 	go o.monitorSession(ctx, session)
 
+	// Subscribe queue to Pub/Sub to collect results (if Pub/Sub is available)
+	if o.pubsubClient != nil {
+		if err := session.Queue.Subscribe(ctx, o.pubsubClient); err != nil {
+			log.Printf("Warning: failed to subscribe queue (results won't be collected): %v", err)
+		}
+	}
+
 	// Provision drones
 	log.Printf("Provisioning %d research drones for session %s", config.ResearcherCount, config.SessionID)
 	if err := o.provisionDrones(ctx, session); err != nil {
@@ -361,11 +368,13 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			// Check completion status
-			o.mu.RLock()
+			// Sync results from queue to session
+			queueResults := session.Queue.GetResults()
+			o.mu.Lock()
+			session.Results = queueResults
 			completedCount := len(session.Results)
 			totalCount := session.Config.ResearcherCount
-			o.mu.RUnlock()
+			o.mu.Unlock()
 
 			if completedCount >= totalCount {
 				log.Printf("All %d drones completed for session %s", totalCount, session.Config.SessionID)

@@ -52,7 +52,7 @@ func NewWidescreenResearchServerOfficial() (*WidescreenResearchServerOfficial, e
 
 // WidescreenResearchArgs defines the arguments for the main tool
 type WidescreenResearchArgs struct {
-	Operation  string                 `json:"operation" jsonschema:"Research operation to perform (orchestrate-research, gcp-provision, analyze-findings)"`
+	Operation  string                 `json:"operation" jsonschema:"Research operation to perform (orchestrate-research, analyze-findings)"`
 	Parameters map[string]interface{} `json:"parameters" jsonschema:"Operation parameters including topic, researcher_count, etc."`
 }
 
