@@ -506,7 +506,8 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getOrchestratorURL() string { //nolint:unused // Reserved for future use
+//lint:ignore U1000 Reserved for future use
+func getOrchestratorURL() string {
 	return getEnvOrDefault("ORCHESTRATOR_URL", "http://localhost:8080")
 }
 
