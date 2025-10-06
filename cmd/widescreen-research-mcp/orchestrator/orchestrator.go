@@ -14,7 +14,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
-	"cloud.google.com/go/run/apiv2"
+	run "cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 	"github.com/google/uuid"
