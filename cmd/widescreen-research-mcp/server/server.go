@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/operations"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/orchestrator"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -107,8 +106,6 @@ func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context,
 	switch operation {
 	case "orchestrate-research":
 		return s.handleOrchestrateResearch(ctx, params)
-	case "gcp-provision":
-		return s.handleGCPProvision(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown operation: %s", operation)
 	}
@@ -126,12 +123,6 @@ func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context
 	}
 
 	return result, nil
-}
-
-// handleGCPProvision handles GCP resource provisioning
-func (s *WidescreenResearchServerOfficial) handleGCPProvision(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	provisioner := operations.NewGCPProvisioner()
-	return provisioner.Execute(ctx, params)
 }
 
 // buildResearchConfig builds a ResearchConfig from parameter map

@@ -57,31 +57,6 @@ type DroneResult struct {
 	ProcessingTime time.Duration          `json:"processing_time"`
 }
 
-// GCPProvisionRequest represents a request to provision GCP resources
-type GCPProvisionRequest struct {
-	ResourceType string                 `json:"resource_type"` // cloud_run, pubsub, firestore
-	Count        int                    `json:"count"`
-	Region       string                 `json:"region"`
-	Config       map[string]interface{} `json:"config"`
-}
-
-// GCPProvisionResponse represents the response from GCP provisioning
-type GCPProvisionResponse struct {
-	Resources []GCPResource `json:"resources"`
-	Status    string        `json:"status"`
-	Message   string        `json:"message,omitempty"`
-}
-
-// GCPResource represents a provisioned GCP resource
-type GCPResource struct {
-	ID        string    `json:"id"`
-	Type      string    `json:"type"`
-	URL       string    `json:"url,omitempty"`
-	Status    string    `json:"status"`
-	Region    string    `json:"region"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 // Pattern represents a discovered pattern in the data
 type Pattern struct {
 	Name        string  `json:"name"`
