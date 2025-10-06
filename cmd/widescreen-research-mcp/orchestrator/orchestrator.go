@@ -28,9 +28,6 @@ type Orchestrator struct {
 	pubsubClient    *pubsub.Client
 	runClient       *run.ServicesClient
 
-	// MCP client for connecting to other MCP servers
-	mcpClient *MCPClient
-
 	// Research management
 	activeSessions map[string]*ResearchSession
 	reports        map[string]*schemas.ResearchReport
@@ -93,14 +90,10 @@ func NewOrchestrator() (*Orchestrator, error) {
 	var runClient *run.ServicesClient
 	var _ = ctx // Mark as used for future lazy init
 
-	// Create MCP client
-	mcpClient := NewMCPClient()
-
 	orch := &Orchestrator{
 		firestoreClient: firestoreClient,
 		pubsubClient:    pubsubClient,
 		runClient:       runClient,
-		mcpClient:       mcpClient,
 		activeSessions:  make(map[string]*ResearchSession),
 		reports:         make(map[string]*schemas.ResearchReport),
 		templates:       make(map[string]*ResearchTemplate),
@@ -116,11 +109,6 @@ func NewOrchestrator() (*Orchestrator, error) {
 
 // Initialize initializes the orchestrator
 func (o *Orchestrator) Initialize(ctx context.Context) error {
-	// Initialize MCP client connections
-	if err := o.mcpClient.Initialize(ctx); err != nil {
-		log.Printf("Warning: MCP client initialization failed (will be unavailable): %v", err)
-	}
-
 	// Create required Pub/Sub topics (only if GCP is configured)
 	if o.pubsubClient != nil {
 		if err := o.createPubSubTopics(ctx); err != nil {
@@ -529,9 +517,6 @@ func (o *Orchestrator) Shutdown() {
 	if o.runClient != nil {
 		o.runClient.Close()
 	}
-
-	// Shutdown MCP client
-	o.mcpClient.Shutdown()
 }
 
 // generateExecutiveSummary creates an executive summary from research results
