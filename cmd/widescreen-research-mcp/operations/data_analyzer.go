@@ -655,8 +655,8 @@ func (da *DataAnalyzer) generateTimeSeriesData(results []schemas.DroneResult) ma
 		times = append(times, time)
 		counts = append(counts, count)
 	}
-	_ = times   // Used in visualization (future)
-	_ = counts  // Used in visualization (future)
+	_ = times  // Used in visualization (future)
+	_ = counts // Used in visualization (future)
 
 	// Sort by time
 	sort.Slice(times, func(i, j int) bool {
