@@ -5,7 +5,8 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { parseSrcmd } from './srcmd-parser.js';
 import { createAgentServer, startServer } from './mcp-server.js';
-import { createAgentClient } from './mcp-client.js';
+import { createAgentClient, type NotebookMCPClient } from './mcp-client.js';
+import { generateHelpersCode, HelperInjector } from './helpers.js';
 import type { Notebook } from './types.js';
 
 async function main() {
@@ -39,7 +40,8 @@ async function main() {
   });
 
   // 5. Make client available globally for notebook cells
-  (global as any).mcpClient = client;
+  const helperInjector = new HelperInjector(client);
+  (global as any).mcpClient = helperInjector.getGlobalClient();
   console.error(`[AGENT-${agentId}] MCP client available globally`);
 
   // 6. Start MCP server
@@ -125,72 +127,24 @@ console.log('[STATE] State tracker initialized');
 `.trim();
 }
 
-/**
- * Generate helpers code
- */
-function generateHelpersCode(agentId: string): string {
-  return `
-// Auto-injected helpers for agent: ${agentId}
-
-// Global MCP client (set by runtime)
-declare const mcpClient: any;
-
-// Smart retrieval: Exa for discovery → Firecrawl for extraction
-export async function retrieve(query: string, url?: string): Promise<any> {
-  if (url) {
-    console.log('[RETRIEVE] Using Firecrawl (known URL)');
-    return await mcpClient.callTool({
-      name: 'firecrawl_scrape',
-      arguments: { url, formats: ['markdown'] }
-    });
-  }
-
-  console.log('[RETRIEVE] Step 1: Discovery with Exa');
-  const results = await mcpClient.callTool({
-    name: 'web_search_exa',
-    arguments: { query, numResults: 5 }
-  });
-
-  console.log('[RETRIEVE] Step 2: Extract with Firecrawl');
-  const contents = [];
-  for (const result of results.results || []) {
-    const content = await mcpClient.callTool({
-      name: 'firecrawl_scrape',
-      arguments: { url: result.url, formats: ['markdown'] }
-    });
-    contents.push({ url: result.url, content });
-  }
-
-  return contents;
-}
-
-// Discover peer agents
-export function discoverPeers(): string[] {
-  const urls = (process.env.PEER_AGENT_URLS || '').split(',');
-  return urls.filter(u => u.trim());
-}
-
-// Call peer agent tool
-export async function callPeer(agentId: string, toolName: string, args: any): Promise<any> {
-  return await mcpClient.callTool({
-    name: \`\${agentId}.\${toolName}\`,
-    arguments: args
-  });
-}
-
-console.log('[HELPERS] Loaded for ${agentId}');
-`.trim();
-}
 
 /**
  * Get external MCP servers from environment
  */
 function getExternalServers() {
-  // Parse from env or use defaults
-  return [
-    // These would be configurable via env vars
-    // For now, return empty - will be added as needed
-  ];
+  const serversJson = process.env.EXTERNAL_MCP_SERVERS;
+
+  if (serversJson) {
+    try {
+      return JSON.parse(serversJson);
+    } catch (error) {
+      console.error('[AGENT] Failed to parse EXTERNAL_MCP_SERVERS:', error);
+    }
+  }
+
+  // Default: no external servers
+  // Users can add them via EXTERNAL_MCP_SERVERS env var
+  return [];
 }
 
 /**
