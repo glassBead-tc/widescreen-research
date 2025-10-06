@@ -82,36 +82,12 @@ type GCPResource struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// DataAnalysisRequest represents a request to analyze research data
-type DataAnalysisRequest struct {
-	Data         []DroneResult          `json:"data"`
-	AnalysisType string                 `json:"analysis_type"`
-	Parameters   map[string]interface{} `json:"parameters,omitempty"`
-}
-
-// DataAnalysisResponse represents the response from data analysis
-type DataAnalysisResponse struct {
-	Summary        string                 `json:"summary"`
-	Insights       []string               `json:"insights"`
-	Patterns       []Pattern              `json:"patterns"`
-	Statistics     map[string]interface{} `json:"statistics"`
-	Visualizations []Visualization        `json:"visualizations,omitempty"`
-}
-
 // Pattern represents a discovered pattern in the data
 type Pattern struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Frequency   int     `json:"frequency"`
 	Confidence  float64 `json:"confidence"`
-}
-
-// Visualization represents a data visualization
-type Visualization struct {
-	Type   string                 `json:"type"`
-	Title  string                 `json:"title"`
-	Data   interface{}            `json:"data"`
-	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 // ResearchReport represents a final research report

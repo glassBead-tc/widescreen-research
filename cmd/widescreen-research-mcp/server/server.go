@@ -109,8 +109,6 @@ func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context,
 		return s.handleOrchestrateResearch(ctx, params)
 	case "gcp-provision":
 		return s.handleGCPProvision(ctx, params)
-	case "analyze-findings":
-		return s.handleAnalyzeFindings(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown operation: %s", operation)
 	}
@@ -134,12 +132,6 @@ func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context
 func (s *WidescreenResearchServerOfficial) handleGCPProvision(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	provisioner := operations.NewGCPProvisioner()
 	return provisioner.Execute(ctx, params)
-}
-
-// handleAnalyzeFindings handles data analysis
-func (s *WidescreenResearchServerOfficial) handleAnalyzeFindings(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	analyzer := operations.NewDataAnalyzer()
-	return analyzer.Execute(ctx, params)
 }
 
 // buildResearchConfig builds a ResearchConfig from parameter map
