@@ -185,6 +185,25 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 
 // provisionDrones provisions the required number of research drones
 func (o *Orchestrator) provisionDrones(ctx context.Context, session *ResearchSession) error {
+	// In local mode (no Cloud Run client), create mock drones for testing
+	if o.runClient == nil {
+		log.Printf("Running in local mode - creating mock drones (no actual deployment)")
+		for i := 0; i < session.Config.ResearcherCount; i++ {
+			droneID := fmt.Sprintf("mock-drone-%s-%d", session.Config.SessionID, i)
+			o.mu.Lock()
+			session.Drones[droneID] = &DroneInfo{
+				ID:          droneID,
+				ServiceURL:  fmt.Sprintf("http://localhost:808%d", i),
+				Status:      "mock-deployed",
+				StartTime:   time.Now(),
+				LastCheckin: time.Now(),
+			}
+			o.mu.Unlock()
+			log.Printf("Created mock drone %s", droneID)
+		}
+		return nil
+	}
+
 	var wg sync.WaitGroup
 	errors := make(chan error, session.Config.ResearcherCount)
 

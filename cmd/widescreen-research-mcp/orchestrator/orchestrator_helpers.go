@@ -179,6 +179,12 @@ func (o *Orchestrator) sendInstructionsToDrone(ctx context.Context, drone *Drone
 
 // collectResults collects results from the research queue
 func (o *Orchestrator) collectResults(ctx context.Context, session *ResearchSession) {
+	// Skip Pub/Sub if not initialized (local mode)
+	if o.pubsubClient == nil {
+		log.Printf("Pub/Sub not initialized - skipping result queue subscription (local mode)")
+		return
+	}
+
 	// Subscribe to results queue
 	if err := session.Queue.Subscribe(ctx, o.pubsubClient); err != nil {
 		log.Printf("Failed to subscribe to results queue: %v", err)
