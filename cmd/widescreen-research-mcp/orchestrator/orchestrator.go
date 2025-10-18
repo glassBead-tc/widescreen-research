@@ -5,7 +5,6 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -17,7 +16,6 @@ import (
 	run "cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -356,74 +354,6 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 	}
 }
 
-// generateReport generates the final research report
-func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSession) (*schemas.ResearchReport, error) {
-	// 1. Save individual drone results
-	resultFileDir := fmt.Sprintf("reports/results_%s", session.Config.SessionID)
-	if err := os.MkdirAll(resultFileDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create results directory: %w", err)
-	}
-
-	var resultFilePaths []string
-	for _, result := range session.Results {
-		resultFilePath := fmt.Sprintf("%s/drone_%s.json", resultFileDir, result.DroneID)
-		jsonData, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			log.Printf("Warning: failed to marshal result for drone %s: %v", result.DroneID, err)
-			continue
-		}
-		if err := os.WriteFile(resultFilePath, jsonData, 0644); err != nil {
-			log.Printf("Warning: failed to save result for drone %s: %v", result.DroneID, err)
-			continue
-		}
-		resultFilePaths = append(resultFilePaths, resultFilePath)
-	}
-
-	// 2. Analyze collected data
-	analysis, err := o.analyzeResults(ctx, session.Results)
-	if err != nil {
-		return nil, fmt.Errorf("failed to analyze results: %w", err)
-	}
-
-	// 3. Generate structured report from drone results
-	report := &schemas.ResearchReport{
-		ID:          uuid.New().String(),
-		SessionID:   session.Config.SessionID,
-		Title:       fmt.Sprintf("Research Report: %s", session.Config.Topic),
-		Executive:   o.generateExecutiveSummary(session, analysis),
-		Sections:    o.generateReportSections(session, analysis),
-		Methodology: fmt.Sprintf("Distributed research using %d parallel drones with %s depth.", session.Config.ResearcherCount, session.Config.ResearchDepth),
-		Data:        o.aggregateDroneData(session.Results),
-		CreatedAt:   time.Now(),
-		Metadata: schemas.ReportMetadata{
-			ResearchTopic:   session.Config.Topic,
-			ResearcherCount: session.Config.ResearcherCount,
-			Duration:        analysis.Duration,
-			DataPoints:      len(session.Results),
-			Sources:         o.extractSources(session.Results),
-			Metrics:         analysis.Metrics,
-		},
-	}
-
-	// 4. Render the structured report to a user-facing Markdown file
-	markdownContent, err := o.renderReportToMarkdown(report, resultFilePaths)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render markdown report: %w", err)
-	}
-	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
-	if err := os.WriteFile(reportFilePath, []byte(markdownContent), 0644); err != nil {
-		return nil, fmt.Errorf("failed to save markdown report: %w", err)
-	}
-	log.Printf("Final report saved to %s", reportFilePath)
-
-	// 5. Store structured report in Firestore
-	if err := o.storeReport(ctx, report); err != nil {
-		log.Printf("Failed to store report: %v", err)
-	}
-
-	return report, nil
-}
-
 // Helper methods
 
 func (o *Orchestrator) getCPUForPriority(priority string) string {
@@ -500,82 +430,3 @@ func (o *Orchestrator) Shutdown() {
 	}
 }
 
-// generateExecutiveSummary creates an executive summary from research results
-func (o *Orchestrator) generateExecutiveSummary(session *ResearchSession, analysis *DataAnalysis) string {
-	successCount := 0
-	for _, result := range session.Results {
-		if result.Status == "completed" {
-			successCount++
-		}
-	}
-
-	summary := fmt.Sprintf("Research Summary: %s\n\n", session.Config.Topic)
-	summary += fmt.Sprintf("Completed using %d research drones over %v.\n\n", session.Config.ResearcherCount, analysis.Duration)
-	summary += fmt.Sprintf("Successfully collected data from %d out of %d drones.\n", successCount, len(session.Results))
-
-	if len(analysis.TopInsights) > 0 {
-		summary += "\nKey Findings:\n"
-		for i, insight := range analysis.TopInsights {
-			if i >= 5 {
-				break
-			}
-			summary += fmt.Sprintf("- %s\n", insight)
-		}
-	}
-
-	return summary
-}
-
-// generateReportSections creates report sections from drone results
-func (o *Orchestrator) generateReportSections(session *ResearchSession, analysis *DataAnalysis) []schemas.ReportSection {
-	sections := []schemas.ReportSection{
-		{
-			Title:    "Research Findings",
-			Content:  fmt.Sprintf("Collected data from %d research drones. Identified %d patterns with average confidence of %.2f.", len(session.Results), len(analysis.Patterns), analysis.AverageConfidence),
-			Insights: analysis.TopInsights,
-			Data:     analysis.Statistics,
-		},
-	}
-
-	return sections
-}
-
-// aggregateDroneData aggregates data from all drone results
-func (o *Orchestrator) aggregateDroneData(results []schemas.DroneResult) map[string]interface{} {
-	aggregated := make(map[string]interface{})
-
-	var allData []map[string]interface{}
-	for _, result := range results {
-		if result.Status == "completed" && result.Data != nil {
-			allData = append(allData, result.Data)
-		}
-	}
-
-	aggregated["drone_results"] = allData
-	aggregated["total_drones"] = len(results)
-	aggregated["successful_drones"] = len(allData)
-
-	return aggregated
-}
-
-// extractSources extracts unique sources from drone results
-func (o *Orchestrator) extractSources(results []schemas.DroneResult) []string {
-	sourceMap := make(map[string]bool)
-
-	for _, result := range results {
-		if sources, ok := result.Data["sources"].([]interface{}); ok {
-			for _, source := range sources {
-				if s, ok := source.(string); ok {
-					sourceMap[s] = true
-				}
-			}
-		}
-	}
-
-	sources := make([]string, 0, len(sourceMap))
-	for source := range sourceMap {
-		sources = append(sources, source)
-	}
-
-	return sources
-}
