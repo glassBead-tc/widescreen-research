@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os/exec"
 	"strings"
 
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
@@ -38,7 +39,21 @@ func (c *OrchestratorClient) Connect(ctx context.Context) error {
 		// Stdio transport - spawn the orchestrator process
 		cmdPath := strings.TrimPrefix(c.orchestratorURL, "stdio://")
 		log.Printf("Connecting to orchestrator via stdio: %s", cmdPath)
-		transport = &mcp.StdioTransport{}
+		
+		// Create command to spawn the orchestrator
+		// For "stdio://widescreen-research-mcp", we run "go run ./cmd/widescreen-research-mcp"
+		// For "stdio://bin/widescreen-research-mcp", we run that binary directly
+		var cmd *exec.Cmd
+		if strings.Contains(cmdPath, "/") {
+			// Path provided - run it directly
+			cmd = exec.Command(cmdPath)
+		} else {
+			// Just a name - assume we need to run via "go run"
+			cmd = exec.Command("go", "run", "./cmd/"+cmdPath)
+		}
+		
+		// Use CommandTransport to spawn the process and communicate via its stdio
+		transport = &mcp.CommandTransport{Command: cmd}
 	} else if strings.HasPrefix(c.orchestratorURL, "http://") || strings.HasPrefix(c.orchestratorURL, "https://") {
 		// HTTP transport - for now, not fully supported in client mode
 		// The MCP SDK primarily supports stdio for client connections
