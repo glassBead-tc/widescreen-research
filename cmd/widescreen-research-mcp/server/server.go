@@ -50,44 +50,32 @@ func NewWidescreenResearchServerOfficial() (*WidescreenResearchServerOfficial, e
 	return srv, nil
 }
 
-// WidescreenResearchArgs defines the arguments for the main tool
-type WidescreenResearchArgs struct {
-	Operation  string                 `json:"operation" jsonschema:"Research operation to perform (orchestrate-research, analyze-findings)"`
-	Parameters map[string]interface{} `json:"parameters" jsonschema:"Operation parameters including topic, researcher_count, etc."`
-}
-
 // registerTools registers all MCP tools
 func (s *WidescreenResearchServerOfficial) registerTools() {
-	// Main widescreen-research tool
+	// ARCHITECTURAL CHANGE: Renamed from "orchestrate-research" to "start-gcp-orchestration"
+	// This server is now purely for GCP resource provisioning and drone management
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "widescreen-research",
-		Description: "Perform comprehensive widescreen research using distributed research drones",
-	}, s.handleWidescreenResearchTool)
+		Name:        "start-gcp-orchestration",
+		Description: "Start GCP orchestration: provision drones, manage Pub/Sub, collect results. Returns raw drone results (host handles report generation).",
+	}, s.handleStartGCPOrchestration)
 }
 
-// handleWidescreenResearchTool is the main tool handler
-func (s *WidescreenResearchServerOfficial) handleWidescreenResearchTool(
+// handleStartGCPOrchestration is the main tool handler (renamed from handleWidescreenResearchTool)
+func (s *WidescreenResearchServerOfficial) handleStartGCPOrchestration(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
-	args WidescreenResearchArgs,
+	args map[string]interface{}, // Simplified args - just parameters
 ) (*mcp.CallToolResult, any, error) {
-	// Validate operation
-	if args.Operation == "" {
-		return &mcp.CallToolResult{
-			IsError: true,
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: "operation parameter is required"},
-			},
-		}, nil, nil
-	}
+	// Build research configuration from parameters
+	config := buildResearchConfig(args)
 
-	// Execute the requested operation
-	result, err := s.executeOperation(ctx, args.Operation, args.Parameters)
+	// Start orchestration - returns drone results, not report
+	result, err := s.orchestrator.OrchestrateResearch(ctx, config)
 	if err != nil {
 		return &mcp.CallToolResult{
 			IsError: true,
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Operation error: %v", err)},
+				&mcp.TextContent{Text: fmt.Sprintf("Orchestration error: %v", err)},
 			},
 		}, nil, nil
 	}
@@ -98,31 +86,6 @@ func (s *WidescreenResearchServerOfficial) handleWidescreenResearchTool(
 			&mcp.TextContent{Text: string(resultJSON)},
 		},
 	}, nil, nil
-}
-
-// executeOperation executes the requested operation
-func (s *WidescreenResearchServerOfficial) executeOperation(ctx context.Context, operation string, params map[string]interface{}) (interface{}, error) {
-	// Execute operation based on type
-	switch operation {
-	case "orchestrate-research":
-		return s.handleOrchestrateResearch(ctx, params)
-	default:
-		return nil, fmt.Errorf("unknown operation: %s", operation)
-	}
-}
-
-// handleOrchestrateResearch handles the main research orchestration
-func (s *WidescreenResearchServerOfficial) handleOrchestrateResearch(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	// Build research configuration from parameters
-	config := buildResearchConfig(params)
-
-	// Start orchestration
-	result, err := s.orchestrator.OrchestrateResearch(ctx, config)
-	if err != nil {
-		return nil, fmt.Errorf("orchestration failed: %w", err)
-	}
-
-	return result, nil
 }
 
 // buildResearchConfig builds a ResearchConfig from parameter map

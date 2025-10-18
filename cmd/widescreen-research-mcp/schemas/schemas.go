@@ -20,11 +20,13 @@ type ResearchConfig struct {
 }
 
 // ResearchResult represents the result of a research operation
+// ARCHITECTURAL CHANGE: Now returns raw drone results instead of report
 type ResearchResult struct {
 	SessionID   string          `json:"session_id"`
 	Status      string          `json:"status"`
-	ReportURL   string          `json:"report_url,omitempty"`
-	ReportData  interface{}     `json:"report_data,omitempty"`
+	Results     []DroneResult   `json:"results,omitempty"`     // Raw drone results (new field)
+	ReportURL   string          `json:"report_url,omitempty"`  // Deprecated - kept for compatibility
+	ReportData  interface{}     `json:"report_data,omitempty"` // Deprecated - kept for compatibility
 	Metrics     ResearchMetrics `json:"metrics"`
 	CompletedAt time.Time       `json:"completed_at"`
 }

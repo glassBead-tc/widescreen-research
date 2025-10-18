@@ -168,34 +168,18 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 		return nil, fmt.Errorf("research failed: %w", err)
 	}
 
-	// Generate report
-	log.Printf("Generating report for session %s", config.SessionID)
-	report, err := o.generateReport(ctx, session)
-	if err != nil {
-		session.Status = "failed_report_generation"
-		o.updateProgressFile(session)
-		return nil, fmt.Errorf("failed to generate report: %w", err)
-	}
-
-	session.Report = report
+	// ARCHITECTURAL CHANGE: Report generation removed - happens in host layer now
 	session.Status = "completed"
 	o.updateProgressFile(session)
-
-	// Store report
-	o.mu.Lock()
-	o.reports[report.ID] = report
-	o.mu.Unlock()
 
 	// Clean up resources
 	go o.cleanupSession(ctx, session)
 
-	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
-
+	// Return collected drone results (NOT a report - host will aggregate)
 	return &schemas.ResearchResult{
 		SessionID:   config.SessionID,
 		Status:      "completed",
-		ReportURL:   reportFilePath,
-		ReportData:  report,
+		Results:     session.Results, // Return raw drone results
 		Metrics:     o.calculateMetrics(session),
 		CompletedAt: time.Now(),
 	}, nil
@@ -332,9 +316,6 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 	if err := o.updateProgressFile(session); err != nil {
 		log.Printf("Warning: failed to update progress file for session %s: %v", session.Config.SessionID, err)
 	}
-
-	// 3. Start collecting results from Pub/Sub.
-	go o.collectResults(ctx, session)
 
 	return nil
 }
