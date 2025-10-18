@@ -78,15 +78,45 @@ type DataAnalysis struct {
 // NewOrchestrator creates a new orchestrator instance
 func NewOrchestrator() (*Orchestrator, error) {
 	projectID := getEnvOrDefault("GOOGLE_CLOUD_PROJECT", "")
-	// Note: projectID can be empty, GCP clients will be lazily initialized when needed
+	region := getEnvOrDefault("GOOGLE_CLOUD_REGION", "us-central1")
 
 	ctx := context.Background()
 
-	// GCP clients will be lazily initialized when first accessed
+	// Initialize GCP clients if projectID is available
 	var firestoreClient *firestore.Client
 	var pubsubClient *pubsub.Client
 	var runClient *run.ServicesClient
-	var _ = ctx // Mark as used for future lazy init
+
+	if projectID != "" {
+		log.Printf("Initializing GCP clients for project %s in region %s", projectID, region)
+		
+		// Initialize Firestore
+		var err error
+		firestoreClient, err = firestore.NewClient(ctx, projectID)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Firestore client: %v", err)
+			firestoreClient = nil
+		}
+
+		// Initialize Pub/Sub
+		pubsubClient, err = pubsub.NewClient(ctx, projectID)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Pub/Sub client: %v", err)
+			pubsubClient = nil
+		}
+
+		// Initialize Cloud Run
+		runClient, err = run.NewServicesClient(ctx)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Cloud Run client: %v", err)
+			runClient = nil
+		}
+
+		log.Printf("GCP clients initialized (Firestore: %v, Pub/Sub: %v, Cloud Run: %v)",
+			firestoreClient != nil, pubsubClient != nil, runClient != nil)
+	} else {
+		log.Println("No GOOGLE_CLOUD_PROJECT set - running in local mode without GCP")
+	}
 
 	orch := &Orchestrator{
 		firestoreClient: firestoreClient,
@@ -96,7 +126,7 @@ func NewOrchestrator() (*Orchestrator, error) {
 		reports:         make(map[string]*schemas.ResearchReport),
 		templates:       make(map[string]*ResearchTemplate),
 		projectID:       projectID,
-		region:          getEnvOrDefault("GOOGLE_CLOUD_REGION", "us-central1"),
+		region:          region,
 	}
 
 	// Load templates
