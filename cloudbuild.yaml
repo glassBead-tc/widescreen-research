@@ -1,0 +1,101 @@
+# Cloud Build configuration for widescreen-research Go project
+# This file should be placed at the root of your GitHub repository
+
+steps:
+  # Step 1: Run go fmt check
+  - name: 'golang:1.23'
+    id: 'go-fmt'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Checking go fmt..."
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "Go code is not formatted. Run 'go fmt ./...'"
+          gofmt -d .
+          exit 1
+        fi
+        echo "go fmt check passed"
+
+  # Step 2: Run go vet
+  - name: 'golang:1.23'
+    id: 'go-vet'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Running go vet..."
+        go vet ./...
+        echo "go vet passed"
+
+  # Step 3: Download dependencies
+  - name: 'golang:1.23'
+    id: 'go-mod-download'
+    entrypoint: 'go'
+    args: ['mod', 'download']
+    waitFor: ['go-vet']
+
+  # Step 4: Run tests
+  - name: 'golang:1.23'
+    id: 'go-test'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Running tests..."
+        go test -v -race -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
+    waitFor: ['go-mod-download']
+
+  # Step 5: Build coordinator binary
+  - name: 'golang:1.23'
+    id: 'build-coordinator'
+    entrypoint: 'go'
+    args: ['build', '-v', '-o', 'bin/coordinator', './cmd/coordinator']
+    waitFor: ['go-test']
+
+  # Step 6: Build drone binary
+  - name: 'golang:1.23'
+    id: 'build-drone'
+    entrypoint: 'go'
+    args: ['build', '-v', '-o', 'bin/drone', './cmd/drone']
+    waitFor: ['go-test']
+
+  # Step 7: Build Docker image for coordinator
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-build-coordinator'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/widescreen-research/coordinator:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/widescreen-research/coordinator:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+    waitFor: ['build-coordinator', 'build-drone']
+
+  # Step 8: Push Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'docker-push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/widescreen-research/coordinator'
+    waitFor: ['docker-build-coordinator']
+
+# Store test artifacts
+artifacts:
+  objects:
+    location: 'gs://${PROJECT_ID}_cloudbuild/artifacts'
+    paths:
+      - 'coverage.out'
+      - 'bin/*'
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+# Timeout
+timeout: '1200s'

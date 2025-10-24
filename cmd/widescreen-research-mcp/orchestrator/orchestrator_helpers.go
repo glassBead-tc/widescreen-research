@@ -179,6 +179,12 @@ func (o *Orchestrator) sendInstructionsToDrone(ctx context.Context, drone *Drone
 
 // collectResults collects results from the research queue
 func (o *Orchestrator) collectResults(ctx context.Context, session *ResearchSession) {
+	// Skip Pub/Sub if not initialized (local mode)
+	if o.pubsubClient == nil {
+		log.Printf("Pub/Sub not initialized - skipping result queue subscription (local mode)")
+		return
+	}
+
 	// Subscribe to results queue
 	if err := session.Queue.Subscribe(ctx, o.pubsubClient); err != nil {
 		log.Printf("Failed to subscribe to results queue: %v", err)
@@ -211,79 +217,6 @@ func (o *Orchestrator) collectResults(ctx context.Context, session *ResearchSess
 	}
 }
 
-// analyzeResults analyzes the collected research results
-func (o *Orchestrator) analyzeResults(ctx context.Context, results []schemas.DroneResult) (*DataAnalysis, error) {
-	analysis := &DataAnalysis{
-		Patterns:    make([]schemas.Pattern, 0),
-		TopInsights: make([]string, 0),
-		Statistics:  make(map[string]interface{}),
-		Duration:    time.Since(results[0].CompletedAt),
-		Metrics: schemas.ResearchMetrics{
-			DronesProvisioned:   len(results),
-			DronesCompleted:     0,
-			DataPointsCollected: 0,
-		},
-	}
-
-	// Count successful completions
-	for _, result := range results {
-		if result.Status == "completed" {
-			analysis.Metrics.DronesCompleted++
-			analysis.Metrics.DataPointsCollected += len(result.Data)
-		} else {
-			analysis.Metrics.DronesFailed++
-		}
-	}
-
-	// Extract patterns
-	patterns := o.extractPatterns(results)
-	analysis.Patterns = patterns
-
-	// Generate insights
-	analysis.TopInsights = o.generateInsights(patterns, results)
-
-	// Calculate statistics
-	analysis.Statistics["total_data_points"] = analysis.Metrics.DataPointsCollected
-	analysis.Statistics["success_rate"] = float64(analysis.Metrics.DronesCompleted) / float64(analysis.Metrics.DronesProvisioned)
-
-	// Calculate average confidence
-	totalConfidence := 0.0
-	for _, pattern := range patterns {
-		totalConfidence += pattern.Confidence
-	}
-	if len(patterns) > 0 {
-		analysis.AverageConfidence = totalConfidence / float64(len(patterns))
-	}
-
-	return analysis, nil
-}
-
-// extractPatterns extracts patterns from the results
-func (o *Orchestrator) extractPatterns(results []schemas.DroneResult) []schemas.Pattern {
-	patterns := []schemas.Pattern{
-		{
-			Name:        "Data Completeness",
-			Description: "Percentage of drones that successfully completed research",
-			Frequency:   len(results),
-			Confidence:  0.9,
-		},
-	}
-
-	// Add more pattern detection logic here
-	return patterns
-}
-
-// generateInsights generates insights from patterns and results
-func (o *Orchestrator) generateInsights(patterns []schemas.Pattern, results []schemas.DroneResult) []string {
-	insights := []string{
-		fmt.Sprintf("Research completed with %d data points collected", len(results)),
-		"High confidence patterns identified across multiple data sources",
-		"Comprehensive coverage achieved through parallel processing",
-	}
-
-	return insights
-}
-
 // calculateMetrics calculates final metrics for the research session
 func (o *Orchestrator) calculateMetrics(session *ResearchSession) schemas.ResearchMetrics {
 	metrics := schemas.ResearchMetrics{
@@ -310,13 +243,6 @@ func (o *Orchestrator) calculateMetrics(session *ResearchSession) schemas.Resear
 	metrics.CostEstimate = cpuHours * 0.0000024 * 1000 // Approximate cost per vCPU-ms
 
 	return metrics
-}
-
-// storeReport stores the research report in Firestore
-func (o *Orchestrator) storeReport(ctx context.Context, report *schemas.ResearchReport) error {
-	doc := o.firestoreClient.Collection("research_reports").Doc(report.ID)
-	_, err := doc.Set(ctx, report)
-	return err
 }
 
 // updateProgressFile writes the current session progress to a markdown file.
@@ -348,44 +274,6 @@ func (o *Orchestrator) updateProgressFile(session *ResearchSession) error {
 	content.WriteString(fmt.Sprintf("\n**Results Collected:** %d / %d\n", len(session.Results), len(session.Drones)))
 
 	return os.WriteFile(filePath, []byte(content.String()), 0644)
-}
-
-// renderReportToMarkdown creates the final user-facing markdown report.
-func (o *Orchestrator) renderReportToMarkdown(report *schemas.ResearchReport, resultFiles []string) (string, error) {
-	var content strings.Builder
-
-	content.WriteString(fmt.Sprintf("# %s\n\n", report.Title))
-	content.WriteString(fmt.Sprintf("**Session ID:** `%s`  \n", report.SessionID))
-	content.WriteString(fmt.Sprintf("**Generated On:** %s\n\n", report.CreatedAt.Format(time.RFC1123)))
-
-	content.WriteString("## Executive Summary\n\n")
-	content.WriteString(report.Executive + "\n\n")
-
-	content.WriteString("## Methodology\n\n")
-	content.WriteString(report.Methodology + "\n\n")
-
-	for _, section := range report.Sections {
-		content.WriteString(fmt.Sprintf("## %s\n\n", section.Title))
-		content.WriteString(section.Content + "\n\n")
-		if len(section.Insights) > 0 {
-			content.WriteString("### Key Insights\n\n")
-			for _, insight := range section.Insights {
-				content.WriteString(fmt.Sprintf("- %s\n", insight))
-			}
-			content.WriteString("\n")
-		}
-	}
-
-	content.WriteString("---\n\n")
-	content.WriteString("## Appendix: Raw Drone Results\n\n")
-	content.WriteString("This appendix contains links to the raw JSON output from each research drone.\n\n")
-
-	for _, path := range resultFiles {
-		content.WriteString(fmt.Sprintf("- [%s](./%s)\n", path, path))
-	}
-	content.WriteString("\n")
-
-	return content.String(), nil
 }
 
 // cleanupSession cleans up resources after a research session

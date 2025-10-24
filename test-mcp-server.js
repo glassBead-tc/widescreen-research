@@ -41,8 +41,13 @@ async function testServer() {
     // Call a tool
     console.log('\n⚙️  Testing tool execution...');
     const result = await client.callTool({
-      name: 'widescreen-research',
-      arguments: { operation: 'start', query: 'Test query' }
+      name: 'start-gcp-orchestration',
+      arguments: {
+        session_id: 'test-session-001',
+        research_question: 'Test integration: What are the latest trends in AI research?',
+        researcher_count: 1,
+        max_depth: 1
+      }
     });
     console.log('✅ Tool executed');
     console.log('Result:', JSON.stringify(result, null, 2).substring(0, 300));

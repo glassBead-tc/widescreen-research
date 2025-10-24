@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,19 @@ import (
 )
 
 func main() {
+	// Parse flags
+	httpMode := flag.Bool("http", false, "Run in HTTP mode instead of stdio")
+	port := flag.String("port", "8080", "HTTP port (only used with -http)")
+	flag.Parse()
+
+	// Check environment variable override
+	if os.Getenv("MCP_TRANSPORT") == "http" {
+		*httpMode = true
+	}
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		*port = envPort
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -31,8 +45,11 @@ func main() {
 	// Start the server in a goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		if err := srv.Run(ctx); err != nil {
-			errChan <- err
+		if *httpMode {
+			addr := ":" + *port
+			errChan <- srv.RunHTTP(ctx, addr)
+		} else {
+			errChan <- srv.Run(ctx)
 		}
 	}()
 

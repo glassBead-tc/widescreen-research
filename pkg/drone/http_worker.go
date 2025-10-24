@@ -1,3 +1,6 @@
+// Copyright (c) 2025 glassBead-tc and contributors
+// SPDX-License-Identifier: MIT
+
 package drone
 
 import (
@@ -22,7 +25,9 @@ type researchRequest struct {
 }
 
 // researchResponse is the structured output including summary, citations, entities, triples.
-type researchResponse struct { //nolint:unused // Reserved for future HTTP responses
+//
+//lint:ignore U1000 Reserved for future HTTP responses
+type researchResponse struct {
 	Subject   string         `json:"subject"`
 	Summary   string         `json:"summary"`
 	Citations []string       `json:"citations"`

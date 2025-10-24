@@ -66,3 +66,25 @@ temp/
 mcp-agent-ts/
 mcp-ui/
 pkg/mcpui/
+
+# Credentials and secrets
+widescreen-researcher-50ee0bbaa5e7.json
+.mcp.json
+
+# Google Cloud SDK (use system gcloud or npx @google-cloud/gcloud-mcp)
+google-cloud-sdk/
+toolbox
+
+# Experimental projects
+experimental/research-agent-mcp/
+experimental/
+packages/srcbook/
+/widescreen-research
+/widescreen-research-mcp
+/mcp-sdk-migrate
+/srcbook
+/research-orchestration
+/environment.json
+/llms.json
+/tests.json
+/cc_mcp_config.json

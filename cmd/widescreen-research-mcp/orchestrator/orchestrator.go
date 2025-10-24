@@ -5,7 +5,6 @@ package orchestrator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -14,10 +13,9 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
-	"cloud.google.com/go/run/apiv2"
+	run "cloud.google.com/go/run/apiv2"
 	runpb "cloud.google.com/go/run/apiv2/runpb"
 	"github.com/glassBead-tc/widescreen-research/cmd/widescreen-research-mcp/schemas"
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -27,12 +25,6 @@ type Orchestrator struct {
 	firestoreClient *firestore.Client
 	pubsubClient    *pubsub.Client
 	runClient       *run.ServicesClient
-
-	// MCP client for connecting to other MCP servers
-	mcpClient *MCPClient
-
-	// Claude SDK agent
-	claudeAgent *ClaudeAgent
 
 	// Research management
 	activeSessions map[string]*ResearchSession
@@ -73,50 +65,68 @@ type ResearchTemplate struct {
 	Workflow    map[string]interface{} `json:"workflow"`
 }
 
+// DataAnalysis contains analysis results from research data
+type DataAnalysis struct {
+	Patterns          []schemas.Pattern
+	TopInsights       []string
+	Statistics        map[string]interface{}
+	Duration          time.Duration
+	AverageConfidence float64
+	Metrics           schemas.ResearchMetrics
+}
+
 // NewOrchestrator creates a new orchestrator instance
 func NewOrchestrator() (*Orchestrator, error) {
 	projectID := getEnvOrDefault("GOOGLE_CLOUD_PROJECT", "")
-	if projectID == "" {
-		return nil, fmt.Errorf("GOOGLE_CLOUD_PROJECT environment variable is required")
-	}
+	region := getEnvOrDefault("GOOGLE_CLOUD_REGION", "us-central1")
 
 	ctx := context.Background()
 
-	// Initialize Firestore client
-	firestoreClient, err := firestore.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Firestore client: %w", err)
+	// Initialize GCP clients if projectID is available
+	var firestoreClient *firestore.Client
+	var pubsubClient *pubsub.Client
+	var runClient *run.ServicesClient
+
+	if projectID != "" {
+		log.Printf("Initializing GCP clients for project %s in region %s", projectID, region)
+		
+		// Initialize Firestore
+		var err error
+		firestoreClient, err = firestore.NewClient(ctx, projectID)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Firestore client: %v", err)
+			firestoreClient = nil
+		}
+
+		// Initialize Pub/Sub
+		pubsubClient, err = pubsub.NewClient(ctx, projectID)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Pub/Sub client: %v", err)
+			pubsubClient = nil
+		}
+
+		// Initialize Cloud Run
+		runClient, err = run.NewServicesClient(ctx)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Cloud Run client: %v", err)
+			runClient = nil
+		}
+
+		log.Printf("GCP clients initialized (Firestore: %v, Pub/Sub: %v, Cloud Run: %v)",
+			firestoreClient != nil, pubsubClient != nil, runClient != nil)
+	} else {
+		log.Println("No GOOGLE_CLOUD_PROJECT set - running in local mode without GCP")
 	}
-
-	// Initialize Pub/Sub client
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Pub/Sub client: %w", err)
-	}
-
-	// Initialize Cloud Run client
-	runClient, err := run.NewServicesClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Cloud Run client: %w", err)
-	}
-
-	// Create MCP client
-	mcpClient := NewMCPClient()
-
-	// Create Claude agent
-	claudeAgent := NewClaudeAgent()
 
 	orch := &Orchestrator{
 		firestoreClient: firestoreClient,
 		pubsubClient:    pubsubClient,
 		runClient:       runClient,
-		mcpClient:       mcpClient,
-		claudeAgent:     claudeAgent,
 		activeSessions:  make(map[string]*ResearchSession),
 		reports:         make(map[string]*schemas.ResearchReport),
 		templates:       make(map[string]*ResearchTemplate),
 		projectID:       projectID,
-		region:          getEnvOrDefault("GOOGLE_CLOUD_REGION", "us-central1"),
+		region:          region,
 	}
 
 	// Load templates
@@ -127,19 +137,13 @@ func NewOrchestrator() (*Orchestrator, error) {
 
 // Initialize initializes the orchestrator
 func (o *Orchestrator) Initialize(ctx context.Context) error {
-	// Initialize MCP client connections
-	if err := o.mcpClient.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize MCP client: %w", err)
-	}
-
-	// Initialize Claude agent
-	if err := o.claudeAgent.Initialize(ctx); err != nil {
-		return fmt.Errorf("failed to initialize Claude agent: %w", err)
-	}
-
-	// Create required Pub/Sub topics
-	if err := o.createPubSubTopics(ctx); err != nil {
-		return fmt.Errorf("failed to create Pub/Sub topics: %w", err)
+	// Create required Pub/Sub topics (only if GCP is configured)
+	if o.pubsubClient != nil {
+		if err := o.createPubSubTopics(ctx); err != nil {
+			log.Printf("Warning: Pub/Sub topics creation failed (GCP features will be limited): %v", err)
+		}
+	} else {
+		log.Println("Pub/Sub client not initialized - running in local mode without GCP")
 	}
 
 	return nil
@@ -167,6 +171,9 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 	// Start monitoring the session
 	go o.monitorSession(ctx, session)
 
+	// Start collecting results from queue
+	go o.collectResults(ctx, session)
+
 	// Provision drones
 	log.Printf("Provisioning %d research drones for session %s", config.ResearcherCount, config.SessionID)
 	if err := o.provisionDrones(ctx, session); err != nil {
@@ -189,34 +196,18 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 		return nil, fmt.Errorf("research failed: %w", err)
 	}
 
-	// Generate report
-	log.Printf("Generating report for session %s", config.SessionID)
-	report, err := o.generateReport(ctx, session)
-	if err != nil {
-		session.Status = "failed_report_generation"
-		o.updateProgressFile(session)
-		return nil, fmt.Errorf("failed to generate report: %w", err)
-	}
-
-	session.Report = report
+	// ARCHITECTURAL CHANGE: Report generation removed - happens in host layer now
 	session.Status = "completed"
 	o.updateProgressFile(session)
-
-	// Store report
-	o.mu.Lock()
-	o.reports[report.ID] = report
-	o.mu.Unlock()
 
 	// Clean up resources
 	go o.cleanupSession(ctx, session)
 
-	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
-
+	// Return collected drone results (NOT a report - host will aggregate)
 	return &schemas.ResearchResult{
 		SessionID:   config.SessionID,
 		Status:      "completed",
-		ReportURL:   reportFilePath,
-		ReportData:  report,
+		Results:     session.Results, // Return raw drone results
 		Metrics:     o.calculateMetrics(session),
 		CompletedAt: time.Now(),
 	}, nil
@@ -224,6 +215,25 @@ func (o *Orchestrator) OrchestrateResearch(ctx context.Context, config *schemas.
 
 // provisionDrones provisions the required number of research drones
 func (o *Orchestrator) provisionDrones(ctx context.Context, session *ResearchSession) error {
+	// In local mode (no Cloud Run client), create mock drones for testing
+	if o.runClient == nil {
+		log.Printf("Running in local mode - creating mock drones (no actual deployment)")
+		for i := 0; i < session.Config.ResearcherCount; i++ {
+			droneID := fmt.Sprintf("mock-drone-%s-%d", session.Config.SessionID, i)
+			o.mu.Lock()
+			session.Drones[droneID] = &DroneInfo{
+				ID:          droneID,
+				ServiceURL:  fmt.Sprintf("http://localhost:808%d", i),
+				Status:      "mock-deployed",
+				StartTime:   time.Now(),
+				LastCheckin: time.Now(),
+			}
+			o.mu.Unlock()
+			log.Printf("Created mock drone %s", droneID)
+		}
+		return nil
+	}
+
 	var wg sync.WaitGroup
 	errors := make(chan error, session.Config.ResearcherCount)
 
@@ -322,26 +332,10 @@ func (o *Orchestrator) deployDrone(ctx context.Context, droneID string, config *
 
 // coordinateResearch coordinates the research process across drones
 func (o *Orchestrator) coordinateResearch(ctx context.Context, session *ResearchSession) error {
-	// 1. Break down the high-level topic into specific sub-queries.
-	log.Printf("Breaking down research topic: %s", session.Config.Topic)
-	subQueries, err := o.claudeAgent.GenerateSubQueries(ctx, session.Config.Topic, session.Config.ResearcherCount)
-	if err != nil {
-		return fmt.Errorf("failed to generate sub-queries: %w", err)
-	}
-	log.Printf("Generated %d sub-queries for topic '%s'", len(subQueries), session.Config.Topic)
+	// 1. Send research topic to each drone
+	log.Printf("Distributing research topic to drones: %s", session.Config.Topic)
 
-	// TODO: For now, we assume the number of drones matches the number of sub-queries.
-	// A more robust implementation would use a queue to distribute subQueries to available drones.
-	if len(subQueries) != len(session.Drones) {
-		log.Printf("Warning: The number of sub-queries (%d) does not match the number of drones (%d). Adjusting drone count for this session.", len(subQueries), len(session.Drones))
-		// This would be a place to dynamically adjust drone count if the architecture supported it.
-		// For now, we'll just truncate the query list to match the drone count.
-		if len(subQueries) > len(session.Drones) {
-			subQueries = subQueries[:len(session.Drones)]
-		}
-	}
-
-	// 2. Send a unique instruction to each drone.
+	// 2. Send research task to each drone
 	o.mu.RLock()
 	drones := make([]*DroneInfo, 0, len(session.Drones))
 	for _, drone := range session.Drones {
@@ -349,15 +343,10 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 	}
 	o.mu.RUnlock()
 
-	for i, drone := range drones {
-		if i >= len(subQueries) {
-			break // Don't send instructions if we have more drones than tasks.
-		}
-
-		// The drone needs to know its task ID (which can be the drone ID for simplicity)
-		// and the query. The other info is passed via env vars.
+	for _, drone := range drones {
+		// Each drone researches the topic - drones will use their own methods/sources
 		task := map[string]interface{}{
-			"subject": subQueries[i],
+			"subject": session.Config.Topic,
 			"run_id":  session.Config.SessionID,
 		}
 
@@ -365,7 +354,7 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 			log.Printf("Failed to send instructions to drone %s: %v", drone.ID, err)
 			drone.Status = "failed_to_instruct"
 		} else {
-			log.Printf("Successfully sent task '%s' to drone %s", subQueries[i], drone.ID)
+			log.Printf("Successfully sent research task to drone %s", drone.ID)
 			drone.Status = "running"
 		}
 	}
@@ -374,9 +363,6 @@ func (o *Orchestrator) coordinateResearch(ctx context.Context, session *Research
 	if err := o.updateProgressFile(session); err != nil {
 		log.Printf("Warning: failed to update progress file for session %s: %v", session.Config.SessionID, err)
 	}
-
-	// 3. Start collecting results from Pub/Sub.
-	go o.collectResults(ctx, session)
 
 	return nil
 }
@@ -394,7 +380,7 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			// Check completion status
+			// Check completion status (collectResults goroutine is updating session.Results in background)
 			o.mu.RLock()
 			completedCount := len(session.Results)
 			totalCount := session.Config.ResearcherCount
@@ -415,64 +401,6 @@ func (o *Orchestrator) waitForCompletion(ctx context.Context, session *ResearchS
 			log.Printf("Research progress: %d/%d drones completed", completedCount, totalCount)
 		}
 	}
-}
-
-// generateReport generates the final research report
-func (o *Orchestrator) generateReport(ctx context.Context, session *ResearchSession) (*schemas.ResearchReport, error) {
-	// 1. Save individual drone results
-	resultFileDir := fmt.Sprintf("reports/results_%s", session.Config.SessionID)
-	if err := os.MkdirAll(resultFileDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create results directory: %w", err)
-	}
-
-	var resultFilePaths []string
-	for _, result := range session.Results {
-		resultFilePath := fmt.Sprintf("%s/drone_%s.json", resultFileDir, result.DroneID)
-		jsonData, err := json.MarshalIndent(result, "", "  ")
-		if err != nil {
-			log.Printf("Warning: failed to marshal result for drone %s: %v", result.DroneID, err)
-			continue
-		}
-		if err := os.WriteFile(resultFilePath, jsonData, 0644); err != nil {
-			log.Printf("Warning: failed to save result for drone %s: %v", result.DroneID, err)
-			continue
-		}
-		resultFilePaths = append(resultFilePaths, resultFilePath)
-	}
-
-	// 2. Analyze collected data
-	analysis, err := o.analyzeResults(ctx, session.Results)
-	if err != nil {
-		return nil, fmt.Errorf("failed to analyze results: %w", err)
-	}
-
-	// 3. Generate structured report using Claude agent
-	report, err := o.claudeAgent.GenerateReport(ctx, session.Config, session.Results, analysis)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate report: %w", err)
-	}
-
-	report.ID = uuid.New().String()
-	report.SessionID = session.Config.SessionID
-	report.CreatedAt = time.Now()
-
-	// 4. Render the structured report to a user-facing Markdown file
-	markdownContent, err := o.renderReportToMarkdown(report, resultFilePaths)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render markdown report: %w", err)
-	}
-	reportFilePath := fmt.Sprintf("reports/report_%s.md", session.Config.SessionID)
-	if err := os.WriteFile(reportFilePath, []byte(markdownContent), 0644); err != nil {
-		return nil, fmt.Errorf("failed to save markdown report: %w", err)
-	}
-	log.Printf("Final report saved to %s", reportFilePath)
-
-	// 5. Store structured report in Firestore
-	if err := o.storeReport(ctx, report); err != nil {
-		log.Printf("Failed to store report: %v", err)
-	}
-
-	return report, nil
 }
 
 // Helper methods
@@ -506,7 +434,8 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getOrchestratorURL() string { //nolint:unused // Reserved for future use
+//lint:ignore U1000 Reserved for future use
+func getOrchestratorURL() string {
 	return getEnvOrDefault("ORCHESTRATOR_URL", "http://localhost:8080")
 }
 
@@ -548,10 +477,5 @@ func (o *Orchestrator) Shutdown() {
 	if o.runClient != nil {
 		o.runClient.Close()
 	}
-
-	// Shutdown MCP client
-	o.mcpClient.Shutdown()
-
-	// Shutdown Claude agent
-	o.claudeAgent.Shutdown()
 }
+

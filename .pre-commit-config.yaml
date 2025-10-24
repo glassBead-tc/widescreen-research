@@ -22,10 +22,10 @@ repos:
 
   # Security scanning
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ["--baseline", ".secrets.baseline"]
         exclude: '(?x)(.*\.lock$|examples/node/.*/node_modules/.*|.*\.min\.(js|css)$|.*\.bundle\.(js|css)$)'
 
   # General file checks
@@ -37,10 +37,10 @@ repos:
       - id: end-of-file-fixer
         exclude: examples/node/.*/node_modules/.*
       - id: check-yaml
-        args: ['--unsafe']
+        args: ["--unsafe"]
         exclude: examples/node/.*
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=1000"]
         exclude: examples/node/.*
       - id: check-case-conflict
         exclude: examples/node/.*
@@ -53,24 +53,24 @@ repos:
       - id: check-xml
         exclude: examples/node/.*
       - id: mixed-line-ending
-        args: ['--fix=lf']
+        args: ["--fix=lf"]
         exclude: examples/node/.*
       - id: no-commit-to-branch
-        args: ['--branch', 'main', '--branch', 'master']
+        args: ["--branch", "main", "--branch", "master"]
 
   # Docker
   - repo: https://github.com/hadolint/hadolint
     rev: v2.14.0
     hooks:
       - id: hadolint-docker
-        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+        args: ["--ignore", "DL3008", "--ignore", "DL3009"]
 
   # Markdown
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:
       - id: markdownlint
-        args: ['--fix']
+        args: ["--fix"]
 
   # YAML
   - repo: https://github.com/adrienverge/yamllint
@@ -97,3 +97,20 @@ repos:
           - .license-header.txt
           - --comment-style
           - //
+
+  # Local hooks - run CI checks before push
+  - repo: local
+    hooks:
+      - id: no-mock-code
+        name: Check for mock/placeholder code
+        entry: bash -c 'if grep -rn --include="*.go" --exclude="*_test.go" -E "(In a real implementation|mock implementation|For now, we.ll create a mock)" cmd/ pkg/ 2>/dev/null; then echo "❌ Mock implementation code found! Replace with real implementation before committing."; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: local-ci-quick
+        name: Quick CI checks (build + test)
+        entry: make ci-quick
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true

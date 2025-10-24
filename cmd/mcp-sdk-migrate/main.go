@@ -214,4 +214,3 @@ What gets migrated:
 For complete migration guide, see: docs/mcp-server-migration-spec.md
 `, version)
 }
-
