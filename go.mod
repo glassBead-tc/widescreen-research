@@ -10,7 +10,7 @@ require (
 	cloud.google.com/go/run v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v0.8.0
-	google.golang.org/protobuf v1.36.9
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
