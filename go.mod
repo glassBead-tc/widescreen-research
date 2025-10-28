@@ -7,7 +7,7 @@ toolchain go1.24.7
 require (
 	cloud.google.com/go/firestore v1.20.0
 	cloud.google.com/go/pubsub v1.49.0
-	cloud.google.com/go/run v1.12.0
+	cloud.google.com/go/run v1.12.1
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v0.8.0
 	google.golang.org/protobuf v1.36.9
